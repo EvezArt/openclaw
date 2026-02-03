@@ -128,6 +128,41 @@ Run `openclaw doctor` to surface risky/misconfigured DM policies.
 - **[Companion apps](https://docs.openclaw.ai/platforms/macos)** — macOS menu bar app + iOS/Android [nodes](https://docs.openclaw.ai/nodes).
 - **[Onboarding](https://docs.openclaw.ai/start/wizard) + [skills](https://docs.openclaw.ai/tools/skills)** — wizard-driven setup with bundled/managed/workspace skills.
 
+## Temporal Experiment (Simulation)
+
+⚠️ **Educational Research Tool** — OpenClaw includes a classical time-symmetric simulation framework for exploring bidirectional constraint satisfaction algorithms. This is a **purely classical simulation** with no quantum effects or actual temporal manipulation.
+
+**Quick Start:**
+
+```bash
+# Run a basic temporal experiment
+openclaw temporal run
+
+# Run with specific seed for reproducibility
+openclaw temporal run --seed 42 --iterations 2000
+
+# Specify constraints
+openclaw temporal run --past-state "ordered" --future-constraint "chaotic" --seed 12345
+```
+
+**Key Features:**
+- Deterministic, reproducible results (same seed = same output)
+- Classical constraint satisfaction simulation
+- Bidirectional state evolution algorithms
+- Educational and research-oriented
+
+**Safety & Ethics:**
+- ❌ NOT quantum computing or actual retrocausality
+- ❌ NOT predictive or precognitive
+- ✅ Purely classical mathematical simulation
+- ✅ Designed for research and education only
+
+**Documentation:**
+- [Temporal Experiments Guide](docs/experiments/temporal.md) — Full documentation with examples, interpretation guidelines, and safety information
+- [Skill Reference](skills/temporal-experiment/SKILL.md) — Technical details and usage patterns
+
+**Remember:** This is a classical simulation for research purposes. Results are mathematical constructs, not predictions or physical phenomena. Always use responsibly and transparently.
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=openclaw/openclaw&type=date&legend=top-left)](https://www.star-history.com/#openclaw/openclaw&type=date&legend=top-left)
