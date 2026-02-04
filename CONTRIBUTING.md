@@ -54,4 +54,10 @@ We are currently prioritizing:
 - **Skills**: Expanding the library of bundled skills and improving the Skill Creation developer experience.
 - **Performance**: Optimizing token usage and compaction logic.
 
+### Development Resources
+
+- **[DEVELOPMENT_AGENDA.md](DEVELOPMENT_AGENDA.md)** - Comprehensive prioritized task list (P0-P3)
+- **[Task Prioritization Guide](docs/development/task-prioritization-guide.md)** - Framework for resolving priority conflicts
+- **[Development Docs](docs/development/)** - Additional development documentation
+
 Check the [GitHub Issues](https://github.com/openclaw/openclaw/issues) for "good first issue" labels!

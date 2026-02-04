@@ -367,10 +367,12 @@ This document provides a prioritized list of development tasks for the OpenClaw 
 ## Related Resources
 
 - **Contributing Guide:** [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Main README:** [README.md](README.md) - Project overview and quick start
 - **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 - **Security Policy:** [SECURITY.md](SECURITY.md)
 - **Documentation:** https://docs.openclaw.ai
 - **Discord:** https://discord.gg/qkhbAGHRBT
+- **GitHub Issues:** https://github.com/openclaw/openclaw/issues
 
 ---
 
