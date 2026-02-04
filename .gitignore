@@ -72,3 +72,4 @@ USER.md
 # local tooling
 .serena/
 test-showcase-direct.mjs
+test-quantum-direct.mjs

@@ -9,6 +9,7 @@ import { getFlagValue, getPositiveIntFlagValue, getVerboseFlag, hasFlag } from "
 import { registerBrowserCli } from "../browser-cli.js";
 import { registerConfigCli } from "../config-cli.js";
 import { registerMemoryCli, runMemoryStatus } from "../memory-cli.js";
+import { registerQuantumCli } from "../quantum-cli.js";
 import { registerShowcaseCli } from "../showcase-cli.js";
 import { registerAgentCommands } from "./register.agent.js";
 import { registerConfigureCommand } from "./register.configure.js";
@@ -166,6 +167,10 @@ export const commandRegistry: CommandRegistration[] = [
   {
     id: "showcase",
     register: ({ program }) => registerShowcaseCli(program),
+  },
+  {
+    id: "quantum",
+    register: ({ program }) => registerQuantumCli(program),
   },
 ];
 
