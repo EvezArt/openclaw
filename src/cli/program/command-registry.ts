@@ -9,6 +9,7 @@ import { getFlagValue, getPositiveIntFlagValue, getVerboseFlag, hasFlag } from "
 import { registerBrowserCli } from "../browser-cli.js";
 import { registerConfigCli } from "../config-cli.js";
 import { registerMemoryCli, runMemoryStatus } from "../memory-cli.js";
+import { registerShowcaseCli } from "../showcase-cli.js";
 import { registerAgentCommands } from "./register.agent.js";
 import { registerConfigureCommand } from "./register.configure.js";
 import { registerMaintenanceCommands } from "./register.maintenance.js";
@@ -161,6 +162,10 @@ export const commandRegistry: CommandRegistration[] = [
   {
     id: "browser",
     register: ({ program }) => registerBrowserCli(program),
+  },
+  {
+    id: "showcase",
+    register: ({ program }) => registerShowcaseCli(program),
   },
 ];
 
