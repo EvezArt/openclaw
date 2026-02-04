@@ -25,6 +25,18 @@ If you want a personal, single-user assistant that feels local, fast, and always
 
 [Website](https://openclaw.ai) · [Docs](https://docs.openclaw.ai) · [DeepWiki](https://deepwiki.com/openclaw/openclaw) · [Getting Started](https://docs.openclaw.ai/start/getting-started) · [Updating](https://docs.openclaw.ai/install/updating) · [Showcase](https://docs.openclaw.ai/start/showcase) · [FAQ](https://docs.openclaw.ai/start/faq) · [Wizard](https://docs.openclaw.ai/start/wizard) · [Nix](https://github.com/openclaw/nix-clawdbot) · [Docker](https://docs.openclaw.ai/install/docker) · [Discord](https://discord.gg/clawd)
 
+---
+
+## 🚀 For Developers & Teams
+
+**Integrating OpenClaw into your project?**
+
+- 💡 **[Why OpenClaw?](docs/WHY_OPENCLAW.md)** - Value proposition, ROI calculator ($225k+ savings), use cases
+- 🏗️ **[Integration Guide](docs/INTEGRATION_GUIDE.md)** - Step-by-step implementation from basic to enterprise
+- 📋 **[Quick Reference](docs/QUICK_REFERENCE.md)** - Copy-paste code snippets for instant productivity
+
+**Production-ready in 1 day. 14+ channels out of the box. Zero licensing fees.**
+
 Preferred setup: run the onboarding wizard (`openclaw onboard`). It walks through gateway, workspace, channels, and skills. The CLI wizard is the recommended path and works on **macOS, Linux, and Windows (via WSL2; strongly recommended)**.
 Works with npm, pnpm, or bun.
 New install? Start here: [Getting started](https://docs.openclaw.ai/start/getting-started)
