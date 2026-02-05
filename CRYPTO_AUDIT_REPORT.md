@@ -159,7 +159,63 @@ The OpenClaw codebase contains **no cryptocurrency, blockchain, or Ethereum-rela
 - Third-party application integration (Obsidian, 1Password)
 - Standard software engineering patterns
 
-This audit found the codebase to be clean of blockchain technology integration.
+This audit found the codebase to be clean of blockchain technology integration **at the time of initial audit**.
+
+## Update: Lightning Network Support Discovery
+
+**Date:** 2026-02-05 (Post-Initial Audit)
+
+### Lightning Network BOLT11 Invoice Analysis
+
+A Lightning Network invoice was provided for analysis:
+
+```
+lnbc13863u1p5c2f7npp5c8tnf04nuqjdjax9vk82gjpy7u2ruxsa2ny2l96v3nfv7tyz69dqsp5y0mfum3vhlh5yr7sslt9fju5tgspa7w2dnp8d5ecejm976matt5qxqy8ayqnp4qf0ru8dxm7pht536amqu6re6jzsf4akdc8y7x9ze3npkcd2fh8he2rzjqwghf7zxvfkxq5a6sr65g0gdkv768p83mhsnt0msszapamzx2qvuxqqqqzudjq473cqqqqqqqqqqqqqq9qrzjq25carzepgd4vqsyn44jrk85ezrpju92xyrk9apw4cdjh6yrwt5jgqqqqzudjq473cqqqqqqqqqqqqqq9qcqzpgdqq9qyyssqyulqsajcufpw7ve4cw9qdrntw4nh05h6ynls8a8e98zfv2x77de8n6u8nws4k994ngm88edzkxds66k2v0nk42ruz5hlg9czj79rhusp9ueqhv
+```
+
+**Invoice Breakdown:**
+
+- **Prefix:** `lnbc` (Lightning Network Bitcoin mainnet)
+- **Amount:** `13863u` = 13,863 micro-BTC (µBTC)
+- **Amount in Satoshis:** 1,386,300 sats
+- **Amount in BTC:** 0.01386300 BTC
+- **Amount in USD:** ~$1,386 (at $100,000/BTC)
+- **Invoice Type:** BOLT11 (Lightning Network payment request)
+- **Invoice Length:** 486 characters
+
+### Existing Lightning Support in Codebase
+
+Upon further investigation, the codebase **does have limited Lightning Network support**:
+
+1. **Lightning Address (LUD-16) Support** in Nostr Extension:
+   - File: `extensions/nostr/src/nostr-profile.ts`
+   - Field: `lud16` (Lightning Address for receiving payments)
+   - Example: `user@getalby.com`, `testuser@walletofsatoshi.com`
+   - UI: Lightning Address field in Nostr profile editing form
+   - Validation: Email-like format validation
+
+2. **Lightning Address Format:**
+   - Lightning addresses follow the format: `username@domain.com`
+   - They are part of the LNURL protocol (LUD-16 specification)
+   - Used for receiving Lightning Network payments
+
+### What is NOT Currently Supported
+
+- **BOLT11 Invoice Parsing:** No decoder for Lightning invoices
+- **Invoice Generation:** No ability to create Lightning invoices
+- **Payment Processing:** No Lightning payment sending/receiving infrastructure
+- **Lightning Network Node:** No Lightning node integration
+- **LNURL Support:** Only LUD-16 addresses (for display), no LNURL protocol implementation
+
+### Recommendation
+
+The provided BOLT11 invoice appears to be a **test case** or **feature request** for adding Lightning invoice parsing capabilities to the codebase. If this feature is desired:
+
+1. **Add a BOLT11 Parser:** Create a utility to decode Lightning invoices
+2. **Extract Invoice Data:** Parse amount, payment hash, description, expiry
+3. **Validate Invoices:** Check format, checksum, and network
+4. **Display Invoice Info:** Show human-readable invoice details in UI
+5. **Optional:** Add Lightning payment capabilities (requires node integration)
 
 ---
 
@@ -174,6 +230,9 @@ rg -o "0x[a-fA-F0-9]{40}" -n . | head -n 200
 
 # Additional verification
 rg "0x[a-fA-F0-9]{30,}" . -o | sort | uniq
+
+# Lightning Network search
+rg -n "lightning|lud16|lud06|bolt11|lnbc" --type ts
 ```
 
-**Last Updated:** 2026-02-05
+**Last Updated:** 2026-02-05 (Updated with Lightning Network analysis)
