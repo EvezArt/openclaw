@@ -37,6 +37,10 @@ import type { FollowupRun } from "./queue.js";
 import { parseReplyDirectives } from "./reply-directives.js";
 import { applyReplyTagsToPayload, isRenderablePayload } from "./reply-payloads.js";
 import type { TypingSignaler } from "./typing-mode.js";
+import {
+  emitInteractionLedgerEvent,
+  hashInteractionContent,
+} from "../../hooks/interaction-ledger-events.js";
 
 export type AgentRunLoopResult =
   | {
@@ -84,6 +88,55 @@ export async function runAgentTurnWithFallback(params: {
   const directlySentBlockKeys = new Set<string>();
 
   const runId = params.opts?.runId ?? crypto.randomUUID();
+  const interactionChannel = (
+    params.sessionCtx.OriginatingChannel ??
+    params.sessionCtx.Surface ??
+    params.sessionCtx.Provider ??
+    "unknown"
+  ).toLowerCase();
+  emitInteractionLedgerEvent({
+    sessionKey: params.sessionKey ?? "agent:unknown",
+    action: "agent:run-start",
+    context: {
+      eventType: "agent",
+      eventName: "agent.run",
+      direction: "internal",
+      channel: interactionChannel,
+      accountId: params.sessionCtx.AccountId,
+      sessionKey: params.sessionKey,
+      sessionId: params.followupRun.run.sessionId,
+      runId,
+      contentHash: hashInteractionContent(params.commandBody),
+      redaction: { content: true, identifiers: false, metadata: false },
+      outcome: { status: "started" },
+      metadata: {
+        provider: params.followupRun.run.provider,
+        model: params.followupRun.run.model,
+      },
+    },
+  });
+  const emitRunEnd = (status: "completed" | "error", reason?: string) => {
+    emitInteractionLedgerEvent({
+      sessionKey: params.sessionKey ?? "agent:unknown",
+      action: "agent:run-end",
+      context: {
+        eventType: "agent",
+        eventName: "agent.run",
+        direction: "internal",
+        channel: interactionChannel,
+        accountId: params.sessionCtx.AccountId,
+        sessionKey: params.sessionKey,
+        sessionId: params.followupRun.run.sessionId,
+        runId,
+        redaction: { content: true, identifiers: false, metadata: false },
+        outcome: { status, reason },
+        metadata: {
+          provider: fallbackProvider,
+          model: fallbackModel,
+        },
+      },
+    });
+  };
   params.opts?.onAgentRunStart?.(runId);
   if (params.sessionKey) {
     registerAgentRunContext(runId, {
@@ -319,6 +372,38 @@ export async function runAgentTurnWithFallback(params: {
                 if (phase === "start" || phase === "update") {
                   await params.typingSignals.signalToolStart();
                 }
+                if (phase === "start" || phase === "end") {
+                  const toolName = typeof evt.data.name === "string" ? evt.data.name : undefined;
+                  const status =
+                    phase === "start"
+                      ? "started"
+                      : typeof evt.data.status === "string" && evt.data.status.trim().length > 0
+                        ? evt.data.status
+                        : "completed";
+                  emitInteractionLedgerEvent({
+                    sessionKey: params.sessionKey ?? "agent:unknown",
+                    action: `tool:${phase}`,
+                    context: {
+                      eventType: "tool",
+                      eventName: `tool.${phase}`,
+                      direction: "internal",
+                      channel: interactionChannel,
+                      accountId: params.sessionCtx.AccountId,
+                      sessionKey: params.sessionKey,
+                      sessionId: params.followupRun.run.sessionId,
+                      runId,
+                      toolName,
+                      redaction: { content: true, identifiers: false, metadata: false },
+                      outcome: {
+                        status: phase === "start" ? "started" : "completed",
+                        reason: status,
+                      },
+                      metadata: {
+                        phase,
+                      },
+                    },
+                  });
+                }
               }
               // Track auto-compaction completion
               if (evt.stream === "compaction") {
@@ -453,6 +538,7 @@ export async function runAgentTurnWithFallback(params: {
         (await params.resetSessionAfterCompactionFailure(embeddedError.message))
       ) {
         didResetAfterCompactionFailure = true;
+        emitRunEnd("error", "context_overflow_compaction_reset");
         return {
           kind: "final",
           payload: {
@@ -463,6 +549,7 @@ export async function runAgentTurnWithFallback(params: {
       if (embeddedError?.kind === "role_ordering") {
         const didReset = await params.resetSessionAfterRoleOrderingConflict(embeddedError.message);
         if (didReset) {
+          emitRunEnd("error", "role_ordering_reset");
           return {
             kind: "final",
             payload: {
@@ -486,6 +573,7 @@ export async function runAgentTurnWithFallback(params: {
         (await params.resetSessionAfterCompactionFailure(message))
       ) {
         didResetAfterCompactionFailure = true;
+        emitRunEnd("error", "compaction_failure_reset");
         return {
           kind: "final",
           payload: {
@@ -496,6 +584,7 @@ export async function runAgentTurnWithFallback(params: {
       if (isRoleOrderingError) {
         const didReset = await params.resetSessionAfterRoleOrderingConflict(message);
         if (didReset) {
+          emitRunEnd("error", "role_ordering_reset");
           return {
             kind: "final",
             payload: {
@@ -542,6 +631,7 @@ export async function runAgentTurnWithFallback(params: {
           );
         }
 
+        emitRunEnd("error", "session_corruption_reset");
         return {
           kind: "final",
           payload: {
@@ -558,6 +648,7 @@ export async function runAgentTurnWithFallback(params: {
           ? "⚠️ Message ordering conflict - please try again. If this persists, use /new to start a fresh session."
           : `⚠️ Agent failed before reply: ${trimmedMessage}.\nLogs: openclaw logs --follow`;
 
+      emitRunEnd("error", "agent_failure");
       return {
         kind: "final",
         payload: {
@@ -567,6 +658,7 @@ export async function runAgentTurnWithFallback(params: {
     }
   }
 
+  emitRunEnd("completed");
   return {
     kind: "success",
     runResult,
