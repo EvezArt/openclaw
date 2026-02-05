@@ -372,7 +372,7 @@ export async function runAgentTurnWithFallback(params: {
                 if (phase === "start" || phase === "update") {
                   await params.typingSignals.signalToolStart();
                 }
-                if (phase === "start" || phase === "end") {
+                if (phase === "start" || phase === "end" || phase === "result") {
                   const toolName = typeof evt.data.name === "string" ? evt.data.name : undefined;
                   const status =
                     phase === "start"
@@ -380,12 +380,13 @@ export async function runAgentTurnWithFallback(params: {
                       : typeof evt.data.status === "string" && evt.data.status.trim().length > 0
                         ? evt.data.status
                         : "completed";
+                  const ledgerActionPhase = phase === "result" ? "end" : phase;
                   emitInteractionLedgerEvent({
                     sessionKey: params.sessionKey ?? "agent:unknown",
-                    action: `tool:${phase}`,
+                    action: `tool:${ledgerActionPhase}`,
                     context: {
                       eventType: "tool",
-                      eventName: `tool.${phase}`,
+                      eventName: `tool.${ledgerActionPhase}`,
                       direction: "internal",
                       channel: interactionChannel,
                       accountId: params.sessionCtx.AccountId,
