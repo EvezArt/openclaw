@@ -35,7 +35,7 @@ const priorityOrder: Record<NotificationPriority, NotificationChannel[]> = {
   LOW: ["whatsapp"],
 };
 
-export class PriorityNotificationRouter {
+export class PriorityNotificationRouter implements NotificationAdapter {
   private readonly smsAdapter: NotificationAdapter;
   private readonly voiceAdapter: NotificationAdapter;
 
@@ -50,6 +50,9 @@ export class PriorityNotificationRouter {
     this.voiceAdapter = options?.voiceAdapter ?? new TwilioVoiceAdapter();
   }
 
+  async send(message: NotificationMessage): Promise<NotificationDeliveryResult> {
+    return this.route(message);
+  }
   async route(message: NotificationMessage): Promise<NotificationDeliveryResult> {
     const channels = priorityOrder[message.priority];
 

@@ -6,6 +6,8 @@ import { BinanceProvider } from "../market-intelligence/providers/binance.js";
 import { CoinGeckoProvider } from "../market-intelligence/providers/coingecko.js";
 import { OpsEscalationManager } from "../notifications/ops-escalation.js";
 import { TwilioVoiceAdapter } from "../notifications/adapters/twilio-voice.js";
+import { PriorityNotificationRouter } from "../notifications/adapters/whatsapp.js";
+import { TwilioSmsAdapter, TwilioWhatsAppAdapter } from "../notifications/adapters/twilio.js";
 
 const logger = getLogger({ module: "ops-orchestrator" });
 
@@ -152,7 +154,12 @@ function createManagedServices(context: TaskContext): ManagedService[] {
 
 export async function runFull(): Promise<void> {
   const context: TaskContext = {};
-  const escalation = new OpsEscalationManager(new TwilioVoiceAdapter());
+  const escalation = new OpsEscalationManager(
+    new PriorityNotificationRouter(new TwilioWhatsAppAdapter(), {
+      smsAdapter: new TwilioSmsAdapter(),
+      voiceAdapter: new TwilioVoiceAdapter(),
+    }),
+  );
 
   const tasks: TaskDefinition[] = [
     {
