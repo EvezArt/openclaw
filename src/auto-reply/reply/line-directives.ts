@@ -9,6 +9,31 @@ import {
 } from "../../line/flex-templates.js";
 
 /**
+ * Parse flexible playback status strings from model output.
+ * Unknown values return undefined so cards avoid incorrect status labels.
+ */
+function parsePlaybackStatus(status?: string): boolean | undefined {
+  if (!status) {
+    return undefined;
+  }
+
+  const normalized = status.trim().toLowerCase();
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (["playing", "play", "active", "on", "gaming", "live"].includes(normalized)) {
+    return true;
+  }
+
+  if (["paused", "pause", "stopped", "stop", "idle", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return undefined;
+}
+
+/**
  * Parse LINE-specific directives from text and extract them into ReplyPayload fields.
  *
  * Supported directives:
@@ -173,7 +198,7 @@ export function parseLineDirectives(payload: ReplyPayload): ReplyPayload {
     const parts = mediaPlayerMatch[1].split("|").map((s) => s.trim());
     if (parts.length >= 1) {
       const [title, artist, source, imageUrl, statusStr] = parts;
-      const isPlaying = statusStr?.toLowerCase() === "playing";
+      const isPlaying = parsePlaybackStatus(statusStr);
 
       // LINE requires HTTPS URLs for images - skip local/HTTP URLs
       const validImageUrl = imageUrl?.startsWith("https://") ? imageUrl : undefined;
@@ -184,7 +209,7 @@ export function parseLineDirectives(payload: ReplyPayload): ReplyPayload {
         subtitle: artist || undefined,
         source: source || undefined,
         imageUrl: validImageUrl,
-        isPlaying: statusStr ? isPlaying : undefined,
+        isPlaying,
         controls: {
           previous: { data: lineActionData("previous", { "line.device": deviceKey }) },
           play: { data: lineActionData("play", { "line.device": deviceKey }) },
