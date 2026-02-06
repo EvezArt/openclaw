@@ -17,6 +17,7 @@ import { shouldSkipDuplicateInbound } from "./inbound-dedupe.js";
 import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
 import { isRoutableChannel, routeReply } from "./route-reply.js";
 import { maybeApplyTtsToPayload, normalizeTtsAutoMode, resolveTtsConfig } from "../../tts/tts.js";
+import { guardTx } from "../../security/treasury-guard.js";
 
 const AUDIO_PLACEHOLDER_RE = /^<media:audio>(\s*\([^)]*\))?$/i;
 const AUDIO_HEADER_RE = /^\[Audio\b/i;
@@ -72,6 +73,26 @@ const resolveSessionTtsAuto = (
   } catch {
     return undefined;
   }
+};
+
+const extractTxPreflight = (payload: ReplyPayload) => {
+  const text = payload.text ?? "";
+  const calldataMatch = text.match(/0x[a-fA-F0-9]{8,}/);
+  const addressMatches = text.match(/0x[a-fA-F0-9]{40}/g) ?? [];
+  if (!calldataMatch || addressMatches.length < 2) {
+    return null;
+  }
+  const contract = addressMatches[0] ?? "0x0000000000000000000000000000000000000000";
+  const to = addressMatches[1] ?? contract;
+  return {
+    chainId: 1,
+    contract,
+    from: contract,
+    to,
+    summary: text.slice(0, 300),
+    calldata: calldataMatch[0],
+    confirmation: text.includes("APPROVAL:") ? "approved" : undefined,
+  };
 };
 
 export type DispatchFromConfigResult = {
@@ -300,6 +321,10 @@ export async function dispatchReplyFromConfig(params: {
           ctx.ChatType !== "group" && ctx.CommandSource !== "native"
             ? (payload: ReplyPayload) => {
                 const run = async () => {
+                  const preflight = extractTxPreflight(payload);
+                  if (preflight) {
+                    await guardTx("tool_result", preflight);
+                  }
                   const ttsPayload = await maybeApplyTtsToPayload({
                     payload,
                     cfg,
