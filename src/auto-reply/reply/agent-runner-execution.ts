@@ -37,6 +37,35 @@ import type { FollowupRun } from "./queue.js";
 import { parseReplyDirectives } from "./reply-directives.js";
 import { applyReplyTagsToPayload, isRenderablePayload } from "./reply-payloads.js";
 import type { TypingSignaler } from "./typing-mode.js";
+import { guardTx } from "../../security/treasury-guard.js";
+
+function extractAgentEventPreflight(data: unknown) {
+  const payload = data && typeof data === "object" ? (data as Record<string, unknown>) : {};
+  const summary = typeof payload.summary === "string" ? payload.summary : JSON.stringify(payload);
+  const calldata = typeof payload.calldata === "string" ? payload.calldata : "";
+  const chainId = typeof payload.chainId === "number" ? payload.chainId : 1;
+  const contract =
+    typeof payload.contract === "string"
+      ? payload.contract
+      : "0x0000000000000000000000000000000000000000";
+  const from = typeof payload.from === "string" ? payload.from : contract;
+  const to = typeof payload.to === "string" ? payload.to : contract;
+  const confirmation = typeof payload.confirmation === "string" ? payload.confirmation : undefined;
+
+  if (!calldata && !/transfer|approve|bridge|borrow|claim|escrowrelease/i.test(summary)) {
+    return null;
+  }
+
+  return {
+    chainId,
+    contract,
+    from,
+    to,
+    summary: summary.slice(0, 300),
+    calldata: calldata || "0x",
+    confirmation,
+  };
+}
 
 export type AgentRunLoopResult =
   | {
@@ -316,6 +345,14 @@ export async function runAgentTurnWithFallback(params: {
               // Must await to ensure typing indicator starts before tool summaries are emitted.
               if (evt.stream === "tool") {
                 const phase = typeof evt.data.phase === "string" ? evt.data.phase : "";
+                const preflight = extractAgentEventPreflight(evt.data);
+                if (preflight) {
+                  const action =
+                    evt.data && typeof evt.data === "object" && typeof evt.data.action === "string"
+                      ? evt.data.action
+                      : "tool";
+                  await guardTx(action, preflight);
+                }
                 if (phase === "start" || phase === "update") {
                   await params.typingSignals.signalToolStart();
                 }
