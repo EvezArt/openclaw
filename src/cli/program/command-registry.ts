@@ -11,6 +11,7 @@ import { registerConfigCli } from "../config-cli.js";
 import { registerMemoryCli, runMemoryStatus } from "../memory-cli.js";
 import { registerQuantumCli } from "../quantum-cli.js";
 import { registerShowcaseCli } from "../showcase-cli.js";
+import { registerFacialMotionCli } from "../facial-motion-cli.js";
 import { registerAgentCommands } from "./register.agent.js";
 import { registerConfigureCommand } from "./register.configure.js";
 import { registerMaintenanceCommands } from "./register.maintenance.js";
@@ -171,6 +172,10 @@ export const commandRegistry: CommandRegistration[] = [
   {
     id: "quantum",
     register: ({ program }) => registerQuantumCli(program),
+  },
+  {
+    id: "facial-motion",
+    register: ({ program }) => registerFacialMotionCli(program),
   },
 ];
 
