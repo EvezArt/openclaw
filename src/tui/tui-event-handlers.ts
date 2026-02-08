@@ -2,7 +2,7 @@ import type { TUI } from "@mariozechner/pi-tui";
 import type { ChatLog } from "./components/chat-log.js";
 import { asString, extractTextFromMessage, isCommandMessage } from "./tui-formatters.js";
 import { TuiStreamAssembler } from "./tui-stream-assembler.js";
-import type { AgentEvent, ChatEvent, TuiStateAccess } from "./tui-types.js";
+import type { AgentEvent, ChatEvent, HypothesisInfo, TuiStateAccess } from "./tui-types.js";
 
 type EventHandlerContext = {
   chatLog: ChatLog;
@@ -153,6 +153,25 @@ export function createEventHandlers(context: EventHandlerContext) {
     if (!isActiveRun && !sessionRuns.has(evt.runId)) {
       return;
     }
+
+    // Handle hypothesis events for CrawFather parallel thinking
+    if (evt.stream === "hypothesis") {
+      handleHypothesisEvent(evt);
+      return;
+    }
+
+    // Handle system events for run lifecycle
+    if (evt.stream === "system") {
+      handleSystemEvent(evt);
+      return;
+    }
+
+    // Handle heartbeat.run events
+    if (evt.stream === "heartbeat.run") {
+      // Currently just log/track, no UI changes needed
+      return;
+    }
+
     if (evt.stream === "tool") {
       const data = evt.data ?? {};
       const phase = asString(data.phase, "");
@@ -191,6 +210,99 @@ export function createEventHandlers(context: EventHandlerContext) {
       }
       tui.requestRender();
     }
+  };
+
+  const handleHypothesisEvent = (evt: AgentEvent) => {
+    const data = evt.data ?? {};
+    const subtype = asString(data.subtype, "");
+    const hypothesisId = asString(data.hypothesisId, "");
+
+    if (!hypothesisId) {
+      return;
+    }
+
+    const now = Date.now();
+
+    if (subtype === "created") {
+      const hypothesis = asString(data.hypothesis, "");
+      const score = typeof data.score === "number" ? data.score : 0.5;
+      const status = asString(data.status, "active") as "active" | "resolved" | "rejected";
+
+      state.activeHypotheses.set(hypothesisId, {
+        id: hypothesisId,
+        hypothesis,
+        score,
+        status,
+        createdAt: now,
+        updatedAt: now,
+      });
+      state.hypothesesVisible = true;
+      tui.requestRender();
+    } else if (subtype === "updated") {
+      const existing = state.activeHypotheses.get(hypothesisId);
+      if (existing) {
+        if (typeof data.score === "number") {
+          existing.score = data.score;
+        }
+        if (typeof data.evidence === "string") {
+          // Could store evidence if we want to display it
+        }
+        existing.updatedAt = now;
+        tui.requestRender();
+      }
+    } else if (subtype === "resolved") {
+      const existing = state.activeHypotheses.get(hypothesisId);
+      if (existing) {
+        existing.status = "resolved";
+        existing.outcome = asString(data.outcome, "confirmed") as
+          | "confirmed"
+          | "rejected"
+          | "merged";
+        existing.reason = asString(data.reason, "");
+        existing.updatedAt = now;
+
+        // Remove resolved hypothesis after a brief display period
+        setTimeout(() => {
+          state.activeHypotheses.delete(hypothesisId);
+          if (state.activeHypotheses.size === 0) {
+            state.hypothesesVisible = false;
+          }
+          tui.requestRender();
+        }, 2000);
+
+        tui.requestRender();
+      }
+    } else if (subtype === "evidence") {
+      const existing = state.activeHypotheses.get(hypothesisId);
+      if (existing && typeof data.evidence === "string") {
+        // Evidence added - could update UI if we track evidence
+        existing.updatedAt = now;
+        tui.requestRender();
+      }
+    }
+  };
+
+  const handleSystemEvent = (evt: AgentEvent) => {
+    const data = evt.data ?? {};
+    const subtype = asString(data.subtype, "");
+
+    if (subtype === "run_started") {
+      // Clear previous hypotheses on new run
+      state.activeHypotheses.clear();
+      state.hypothesesVisible = false;
+      setActivityStatus("starting");
+    } else if (subtype === "run_completed") {
+      // Run completed successfully
+      state.hypothesesVisible = false;
+    } else if (subtype === "run_failed") {
+      // Run failed
+      const error = asString(data.error, "unknown error");
+      chatLog.addSystem(`CrawFather run failed: ${error}`);
+      state.activeHypotheses.clear();
+      state.hypothesesVisible = false;
+      setActivityStatus("error");
+    }
+    tui.requestRender();
   };
 
   return { handleChatEvent, handleAgentEvent };

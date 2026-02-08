@@ -46,6 +46,18 @@ export type AgentSummary = {
   name?: string;
 };
 
+// CrawFather hypothesis tracking for parallel thinking display
+export type HypothesisInfo = {
+  id: string;
+  hypothesis: string;
+  score: number;
+  status: "active" | "resolved" | "rejected";
+  outcome?: "confirmed" | "rejected" | "merged";
+  reason?: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type GatewayStatusSummary = {
   linkChannel?: {
     id?: string;
@@ -104,4 +116,7 @@ export type TuiStateAccess = {
   activityStatus: string;
   statusTimeout: ReturnType<typeof setTimeout> | null;
   lastCtrlCAt: number;
+  // CrawFather hypothesis tracking
+  activeHypotheses: Map<string, HypothesisInfo>;
+  hypothesesVisible: boolean;
 };
