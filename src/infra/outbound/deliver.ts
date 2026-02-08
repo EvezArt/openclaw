@@ -24,6 +24,10 @@ import {
 import type { NormalizedOutboundPayload } from "./payloads.js";
 import { normalizeReplyPayloadsForDelivery } from "./payloads.js";
 import type { OutboundChannel } from "./targets.js";
+import {
+  emitInteractionLedgerEvent,
+  hashInteractionContent,
+} from "../../hooks/interaction-ledger-events.js";
 
 export type { NormalizedOutboundPayload } from "./payloads.js";
 export { normalizeOutboundPayloads } from "./payloads.js";
@@ -190,6 +194,7 @@ export async function deliverOutboundPayloads(params: {
   bestEffort?: boolean;
   onError?: (err: unknown, payload: NormalizedOutboundPayload) => void;
   onPayload?: (payload: NormalizedOutboundPayload) => void;
+  sessionKey?: string;
   mirror?: {
     sessionKey: string;
     agentId?: string;
@@ -203,6 +208,37 @@ export async function deliverOutboundPayloads(params: {
   const abortSignal = params.abortSignal;
   const sendSignal = params.deps?.sendSignal ?? sendMessageSignal;
   const results: OutboundDeliveryResult[] = [];
+  const outboundSessionKey = params.sessionKey ?? params.mirror?.sessionKey ?? "outbound:unknown";
+  const emitOutboundInteraction = (opts: {
+    payloadText?: string;
+    payloadMediaUrl?: string;
+    status: "sent" | "error";
+    reason?: string;
+    result?: OutboundDeliveryResult;
+  }) => {
+    emitInteractionLedgerEvent({
+      sessionKey: outboundSessionKey,
+      action: "outbound:send",
+      context: {
+        eventType: "message",
+        eventName: "outbound.send",
+        direction: "outbound",
+        channel,
+        accountId,
+        sessionKey: params.sessionKey,
+        messageId: opts.result?.messageId,
+        contentHash: hashInteractionContent(
+          [opts.payloadText, opts.payloadMediaUrl].filter(Boolean).join("\n") || undefined,
+        ),
+        redaction: { content: true, identifiers: false, metadata: false },
+        outcome: {
+          status: opts.status,
+          reason: opts.reason,
+        },
+        metadata: opts.result ? { delivery: opts.result } : undefined,
+      },
+    });
+  };
   const handler = await createChannelHandler({
     cfg,
     channel,
@@ -236,7 +272,9 @@ export async function deliverOutboundPayloads(params: {
   const sendTextChunks = async (text: string) => {
     throwIfAborted(abortSignal);
     if (!handler.chunker || textLimit === undefined) {
-      results.push(await handler.sendText(text));
+      const result = await handler.sendText(text);
+      results.push(result);
+      emitOutboundInteraction({ payloadText: text, status: "sent", result });
       return;
     }
     if (chunkMode === "newline") {
@@ -256,7 +294,9 @@ export async function deliverOutboundPayloads(params: {
         }
         for (const chunk of chunks) {
           throwIfAborted(abortSignal);
-          results.push(await handler.sendText(chunk));
+          const result = await handler.sendText(chunk);
+          results.push(result);
+          emitOutboundInteraction({ payloadText: chunk, status: "sent", result });
         }
       }
       return;
@@ -264,7 +304,9 @@ export async function deliverOutboundPayloads(params: {
     const chunks = handler.chunker(text, textLimit);
     for (const chunk of chunks) {
       throwIfAborted(abortSignal);
-      results.push(await handler.sendText(chunk));
+      const result = await handler.sendText(chunk);
+      results.push(result);
+      emitOutboundInteraction({ payloadText: chunk, status: "sent", result });
     }
   };
 
@@ -294,7 +336,9 @@ export async function deliverOutboundPayloads(params: {
     }
     for (const chunk of signalChunks) {
       throwIfAborted(abortSignal);
-      results.push(await sendSignalText(chunk.text, chunk.styles));
+      const result = await sendSignalText(chunk.text, chunk.styles);
+      results.push(result);
+      emitOutboundInteraction({ payloadText: chunk.text, status: "sent", result });
     }
   };
 
@@ -328,7 +372,14 @@ export async function deliverOutboundPayloads(params: {
       throwIfAborted(abortSignal);
       params.onPayload?.(payloadSummary);
       if (handler.sendPayload && payload.channelData) {
-        results.push(await handler.sendPayload(payload));
+        const result = await handler.sendPayload(payload);
+        results.push(result);
+        emitOutboundInteraction({
+          payloadText: payload.text,
+          payloadMediaUrl: payload.mediaUrl,
+          status: "sent",
+          result,
+        });
         continue;
       }
       if (payloadSummary.mediaUrls.length === 0) {
@@ -346,12 +397,32 @@ export async function deliverOutboundPayloads(params: {
         const caption = first ? payloadSummary.text : "";
         first = false;
         if (isSignalChannel) {
-          results.push(await sendSignalMedia(caption, url));
+          const result = await sendSignalMedia(caption, url);
+          results.push(result);
+          emitOutboundInteraction({
+            payloadText: caption,
+            payloadMediaUrl: url,
+            status: "sent",
+            result,
+          });
         } else {
-          results.push(await handler.sendMedia(caption, url));
+          const result = await handler.sendMedia(caption, url);
+          results.push(result);
+          emitOutboundInteraction({
+            payloadText: caption,
+            payloadMediaUrl: url,
+            status: "sent",
+            result,
+          });
         }
       }
     } catch (err) {
+      emitOutboundInteraction({
+        payloadText: payloadSummary.text,
+        payloadMediaUrl: payloadSummary.mediaUrls[0],
+        status: "error",
+        reason: err instanceof Error ? err.message : String(err),
+      });
       if (!params.bestEffort) {
         throw err;
       }
