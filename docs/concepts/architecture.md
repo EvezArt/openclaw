@@ -125,4 +125,9 @@ Details: [Gateway protocol](/gateway/protocol), [Pairing](/start/pairing),
 
 - Exactly one Gateway controls a single Baileys session per host.
 - Handshake is mandatory; any non‑JSON or non‑connect first frame is a hard close.
-- Events are not replayed; clients must refresh on gaps.
+- Events are not replayed on the Gateway protocol stream; clients must refresh on gaps.
+- Self play replay uses the event store sync APIs documented in the self play concept.
+
+## Related concepts
+
+- [Self play daemon architecture](/concepts/self-play)
