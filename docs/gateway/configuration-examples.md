@@ -51,19 +51,26 @@ Give your assistant a personality from the Claw Family:
 
 ```json5
 {
-  identity: {
-    name: "CrawFather",  // or "CrawDad" for a friendlier vibe
-    theme: "wise crustacean mentor",
-    emoji: "🦞",
-  },
   ui: {
     assistant: {
-      name: "CrawFather",  // Display name in web UI
+      name: "CrawFather",  // Display name in web UI (or "CrawDad" for a friendlier vibe)
       avatar: "🦞",
     },
   },
-  agent: {
-    workspace: "~/.openclaw/workspace",
+  agents: {
+    defaults: {
+      workspace: "~/.openclaw/workspace",
+    },
+    list: [
+      {
+        id: "main",
+        identity: {
+          name: "CrawFather",  // or "CrawDad" for a friendlier vibe
+          theme: "wise crustacean mentor",
+          emoji: "🦞",
+        },
+      },
+    ],
   },
   channels: {
     whatsapp: {
