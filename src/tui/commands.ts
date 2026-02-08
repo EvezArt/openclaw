@@ -63,55 +63,73 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
       name: "verbose",
       description: "Set verbose on/off",
       getArgumentCompletions: (prefix) =>
-        VERBOSE_LEVELS.filter((v) => v.startsWith(prefix.toLowerCase())).map((value) => ({
-          value,
-          label: value,
-        })),
+        // Combine filter and map for efficiency
+        VERBOSE_LEVELS.reduce<{ value: string; label: string }[]>((acc, v) => {
+          if (v.startsWith(prefix.toLowerCase())) {
+            acc.push({ value: v, label: v });
+          }
+          return acc;
+        }, []),
     },
     {
       name: "reasoning",
       description: "Set reasoning on/off",
       getArgumentCompletions: (prefix) =>
-        REASONING_LEVELS.filter((v) => v.startsWith(prefix.toLowerCase())).map((value) => ({
-          value,
-          label: value,
-        })),
+        // Combine filter and map for efficiency
+        REASONING_LEVELS.reduce<{ value: string; label: string }[]>((acc, v) => {
+          if (v.startsWith(prefix.toLowerCase())) {
+            acc.push({ value: v, label: v });
+          }
+          return acc;
+        }, []),
     },
     {
       name: "usage",
       description: "Toggle per-response usage line",
       getArgumentCompletions: (prefix) =>
-        USAGE_FOOTER_LEVELS.filter((v) => v.startsWith(prefix.toLowerCase())).map((value) => ({
-          value,
-          label: value,
-        })),
+        // Combine filter and map for efficiency
+        USAGE_FOOTER_LEVELS.reduce<{ value: string; label: string }[]>((acc, v) => {
+          if (v.startsWith(prefix.toLowerCase())) {
+            acc.push({ value: v, label: v });
+          }
+          return acc;
+        }, []),
     },
     {
       name: "elevated",
       description: "Set elevated on/off/ask/full",
       getArgumentCompletions: (prefix) =>
-        ELEVATED_LEVELS.filter((v) => v.startsWith(prefix.toLowerCase())).map((value) => ({
-          value,
-          label: value,
-        })),
+        // Combine filter and map for efficiency
+        ELEVATED_LEVELS.reduce<{ value: string; label: string }[]>((acc, v) => {
+          if (v.startsWith(prefix.toLowerCase())) {
+            acc.push({ value: v, label: v });
+          }
+          return acc;
+        }, []),
     },
     {
       name: "elev",
       description: "Alias for /elevated",
       getArgumentCompletions: (prefix) =>
-        ELEVATED_LEVELS.filter((v) => v.startsWith(prefix.toLowerCase())).map((value) => ({
-          value,
-          label: value,
-        })),
+        // Combine filter and map for efficiency
+        ELEVATED_LEVELS.reduce<{ value: string; label: string }[]>((acc, v) => {
+          if (v.startsWith(prefix.toLowerCase())) {
+            acc.push({ value: v, label: v });
+          }
+          return acc;
+        }, []),
     },
     {
       name: "activation",
       description: "Set group activation",
       getArgumentCompletions: (prefix) =>
-        ACTIVATION_LEVELS.filter((v) => v.startsWith(prefix.toLowerCase())).map((value) => ({
-          value,
-          label: value,
-        })),
+        // Combine filter and map for efficiency
+        ACTIVATION_LEVELS.reduce<{ value: string; label: string }[]>((acc, v) => {
+          if (v.startsWith(prefix.toLowerCase())) {
+            acc.push({ value: v, label: v });
+          }
+          return acc;
+        }, []),
     },
     { name: "abort", description: "Abort active run" },
     { name: "new", description: "Reset the session" },
