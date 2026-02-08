@@ -145,7 +145,7 @@ describe("quantum insight generation", () => {
   });
 
   it("should provide different insights over time", () => {
-    const insight1 = generateQuantumInsight();
+    const _insight1 = generateQuantumInsight();
 
     // Wait a second to potentially get a different insight
     const insights = new Set<string>();
