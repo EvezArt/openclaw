@@ -6,6 +6,16 @@ Docs: https://docs.openclaw.ai
 
 ### Changes
 
+- **CrawFather Survival Pack**: Add live event streaming with parallel hypothesis tracking. (#PR_NUMBER)
+  - Event Schema: New `system`, `hypothesis`, and `heartbeat.run` event streams with subtypes
+  - TUI: Real-time hypothesis panel displaying active hypotheses with scores and outcomes
+  - Gateway: Automatic WebSocket broadcast of all CrawFather events to connected clients
+  - Docs: Comprehensive CrawFather agent guide at `/crawfather` with configuration examples
+  - Examples: Working demo in `examples/crawfather-events.ts`
+  - Types: Full TypeScript support with `HypothesisInfo`, `SystemEventSubtype`, `HypothesisEventSubtype`
+  - Helpers: `emitSystemEvent`, `emitHypothesisEvent`, `emitHeartbeatRunEvent` convenience functions
+  - Tests: 18 new test cases covering event schema and TUI integration
+
 ### Fixes
 
 ## 2026.1.30
