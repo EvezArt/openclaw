@@ -9,6 +9,7 @@
  * - Parallel hypotheses (me/we/they/system models)
  * - First-class test objects
  * - Knowledge tracking with explicit sources
+ * - Entropy calculation and information theory metrics
  *
  * All interventions are attributable, auditable, and reversible.
  * No single-domain requirements - all domain signatures are emergent mixture vectors.
@@ -29,6 +30,10 @@ export type { HypothesisQuery } from "./hypothesis-store.js";
 
 export { testStore, TestStore } from "./test-store.js";
 export type { TestQuery } from "./test-store.js";
+
+// Entropy and information theory
+export * from "./entropy.js";
+export * from "./hypothesis-entropy.js";
 
 // Utilities
 export * from "./utils.js";
