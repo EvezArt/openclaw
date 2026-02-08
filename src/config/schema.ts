@@ -701,10 +701,8 @@ type JsonSchemaObject = JsonSchemaNode & {
 };
 
 function cloneSchema<T>(value: T): T {
-  if (typeof structuredClone === "function") {
-    return structuredClone(value);
-  }
-  return JSON.parse(JSON.stringify(value)) as T;
+  // Node 22+ always has structuredClone (required by package.json engines)
+  return structuredClone(value);
 }
 
 function asSchemaObject(value: unknown): JsonSchemaObject | null {

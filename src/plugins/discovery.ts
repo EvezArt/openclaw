@@ -56,7 +56,14 @@ function resolvePackageExtensions(manifest: PackageManifest): string[] {
   if (!Array.isArray(raw)) {
     return [];
   }
-  return raw.map((entry) => (typeof entry === "string" ? entry.trim() : "")).filter(Boolean);
+  // Combine map and filter into single reduce for efficiency
+  return raw.reduce<string[]>((acc, entry) => {
+    const trimmed = typeof entry === "string" ? entry.trim() : "";
+    if (trimmed) {
+      acc.push(trimmed);
+    }
+    return acc;
+  }, []);
 }
 
 function deriveIdHint(params: {

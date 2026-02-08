@@ -80,7 +80,14 @@ export function summarizeLogTail(rawLines: string[], opts?: { maxLines?: number 
     out.push(trimmed);
   };
 
-  const lines = rawLines.map((line) => line.trimEnd()).filter(Boolean);
+  // Combine map and filter for efficiency
+  const lines = rawLines.reduce<string[]>((acc, line) => {
+    const trimmed = line.trimEnd();
+    if (trimmed) {
+      acc.push(trimmed);
+    }
+    return acc;
+  }, []);
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? "";
     const trimmedStart = line.trimStart();
