@@ -43,6 +43,9 @@ export type ParallelHypotheses = {
 // Track hypotheses per run
 const hypothesesByRun = new Map<string, ParallelHypotheses>();
 
+// Counter to ensure unique IDs even within the same millisecond
+let hypothesisCounter = 0;
+
 /**
  * Emit a hypothesis event on the agent event stream.
  */
@@ -98,7 +101,8 @@ export function createHypothesis(
   description: string,
   probability: number,
 ): string {
-  const hypothesisId = `${runId}-${modelType}-${Date.now()}`;
+  hypothesisCounter++;
+  const hypothesisId = `${runId}-${modelType}-${Date.now()}-${hypothesisCounter}`;
   const data: HypothesisEventData = {
     hypothesisId,
     modelType,
@@ -115,11 +119,7 @@ export function createHypothesis(
 /**
  * Update an existing hypothesis probability.
  */
-export function updateHypothesis(
-  runId: string,
-  hypothesisId: string,
-  probability: number,
-) {
+export function updateHypothesis(runId: string, hypothesisId: string, probability: number) {
   const parallel = hypothesesByRun.get(runId);
   if (!parallel) {
     return;
@@ -143,11 +143,7 @@ export function updateHypothesis(
 /**
  * Mark a hypothesis as falsified.
  */
-export function falsifyHypothesis(
-  runId: string,
-  hypothesisId: string,
-  falsifierIndex: number,
-) {
+export function falsifyHypothesis(runId: string, hypothesisId: string, falsifierIndex: number) {
   const parallel = hypothesesByRun.get(runId);
   if (!parallel) {
     return;
@@ -261,4 +257,5 @@ export function onHypothesisEvent(
  */
 export function clearAllHypothesesForTest() {
   hypothesesByRun.clear();
+  hypothesisCounter = 0;
 }
