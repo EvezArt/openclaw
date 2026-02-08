@@ -1,6 +1,7 @@
 import { CHANNEL_IDS } from "../channels/registry.js";
 import { VERSION } from "../version.js";
 import { OpenClawSchema } from "./zod-schema.js";
+import { z } from "zod";
 
 export type ConfigUiHint = {
   label?: string;
@@ -1023,4 +1024,57 @@ export function buildConfigSchema(params?: {
     schema: mergedSchema,
     uiHints: mergedHints,
   };
+}
+
+const opsBooleanString = z
+  .union([z.boolean(), z.string().trim().toLowerCase()])
+  .transform((value) => {
+    if (typeof value === "boolean") {
+      return value;
+    }
+    if (value === "true" || value === "1" || value === "yes") {
+      return true;
+    }
+    if (value === "false" || value === "0" || value === "no") {
+      return false;
+    }
+    throw new Error(`Invalid boolean value: ${value}`);
+  });
+
+const opsEnvSchema = z.object({
+  TWILIO_ACCOUNT_SID: z.string().min(1),
+  TWILIO_AUTH_TOKEN: z.string().min(1),
+  TWILIO_FROM_NUMBER: z.string().min(1),
+  TWILIO_TO_NUMBER: z.string().min(1),
+  BINANCE_API_KEY: z.string().min(1),
+  BINANCE_API_SECRET: z.string().min(1),
+  BINANCE_BASE_URL: z.string().url().default("https://api.binance.com"),
+  COINGECKO_API_KEY: z.string().min(1),
+  COINGECKO_BASE_URL: z.string().url().default("https://api.coingecko.com/api/v3"),
+  ALPHA_VANTAGE_API_KEY: z.string().min(1),
+  ALPHA_VANTAGE_BASE_URL: z.string().url().default("https://www.alphavantage.co/query"),
+  OPENAI_API_KEY: z.string().min(1),
+  STRIPE_SECRET_KEY: z.string().min(1),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1),
+  ENABLE_LIVE_TRADING: opsBooleanString.default(false),
+  LIVE_TRADING_CONFIRMATION: z.string().min(1),
+  LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
+});
+
+export type OpsConfig = z.infer<typeof opsEnvSchema>;
+
+let opsConfigCache: OpsConfig | null = null;
+
+export function parseOpsConfig(input: NodeJS.ProcessEnv = process.env): OpsConfig {
+  return opsEnvSchema.parse(input);
+}
+
+export function getOpsConfig(): OpsConfig {
+  if (!opsConfigCache) {
+    opsConfigCache = parseOpsConfig();
+  }
+  return opsConfigCache;
+}
+export function resetOpsConfigCache(): void {
+  opsConfigCache = null;
 }
