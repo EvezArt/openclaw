@@ -17,6 +17,7 @@ import {
 import { getSlashCommands } from "./commands.js";
 import { ChatLog } from "./components/chat-log.js";
 import { CustomEditor } from "./components/custom-editor.js";
+import { HypothesisPanel } from "./components/hypothesis-panel.js";
 import { GatewayChatClient } from "./gateway-chat.js";
 import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
@@ -234,6 +235,7 @@ export async function runTui(opts: TuiOptions) {
   const tui = new TUI(new ProcessTerminal());
   const header = new Text("", 1, 0);
   const statusContainer = new Container();
+  const hypothesisContainer = new Container();
   const footer = new Text("", 1, 0);
   const chatLog = new ChatLog();
   const editor = new CustomEditor(tui, editorTheme);
@@ -241,6 +243,7 @@ export async function runTui(opts: TuiOptions) {
   root.addChild(header);
   root.addChild(chatLog);
   root.addChild(statusContainer);
+  root.addChild(hypothesisContainer);
   root.addChild(footer);
   root.addChild(editor);
 
@@ -526,12 +529,16 @@ export async function runTui(opts: TuiOptions) {
   const { refreshAgents, refreshSessionInfo, loadHistory, setSession, abortActive } =
     sessionActions;
 
+  const hypothesisPanel = new HypothesisPanel(theme);
+  hypothesisContainer.addChild(hypothesisPanel.getContainer());
+
   const { handleChatEvent, handleAgentEvent } = createEventHandlers({
     chatLog,
     tui,
     state,
     setActivityStatus,
     refreshSessionInfo,
+    hypothesisPanel,
   });
 
   const { handleCommand, sendMessage, openModelSelector, openAgentSelector, openSessionSelector } =
