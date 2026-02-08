@@ -10,6 +10,9 @@
  * - First-class test objects
  * - Knowledge tracking with explicit sources
  * - Entropy calculation and information theory metrics
+ * - Bioorganism signature tracking and threat assessment
+ * - Deep user identity modeling
+ * - System autonomy and internet independence analysis
  *
  * All interventions are attributable, auditable, and reversible.
  * No single-domain requirements - all domain signatures are emergent mixture vectors.
@@ -34,6 +37,15 @@ export type { TestQuery } from "./test-store.js";
 // Entropy and information theory
 export * from "./entropy.js";
 export * from "./hypothesis-entropy.js";
+
+// Bioorganism signatures and threat assessment
+export * from "./bioorganism-signatures.js";
+
+// User identity modeling
+export * from "./user-identity.js";
+
+// System autonomy analysis
+export * from "./system-autonomy.js";
 
 // Utilities
 export * from "./utils.js";
