@@ -139,6 +139,7 @@ Run `openclaw doctor` to surface risky/misconfigured DM policies.
 - **[First-class tools](https://docs.openclaw.ai/tools)** — browser, canvas, nodes, cron, sessions, and Discord/Slack actions.
 - **[Companion apps](https://docs.openclaw.ai/platforms/macos)** — macOS menu bar app + iOS/Android [nodes](https://docs.openclaw.ai/nodes).
 - **[Onboarding](https://docs.openclaw.ai/start/wizard) + [skills](https://docs.openclaw.ai/tools/skills)** — wizard-driven setup with bundled/managed/workspace skills.
+- **[Facial Motion Analysis](docs/facial-motion.md)** — privacy-preserving, consent-based real-time facial motion tracking (no identity recognition).
 
 ## Star History
 
