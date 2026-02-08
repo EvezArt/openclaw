@@ -6,7 +6,7 @@
  */
 
 import { Container, Text } from "@mariozechner/pi-tui";
-import type { Hypothesis, HypothesisOutcome, HypothesisStatus } from "./hypothesis-types.js";
+import type { Hypothesis, HypothesisOutcome, HypothesisStatus } from "../hypothesis-types.js";
 
 /**
  * Formats a hypothesis status with appropriate styling indication.
@@ -86,6 +86,7 @@ export class HypothesisPanel {
   private container: Container;
   private headerText: Text;
   private hypothesesText: Text;
+  private visible = false;
 
   constructor(
     private theme: {
@@ -116,11 +117,11 @@ export class HypothesisPanel {
    */
   render(hypotheses: Hypothesis[]): void {
     if (hypotheses.length === 0) {
-      this.container.setVisible(false);
+      this.hide();
       return;
     }
 
-    this.container.setVisible(true);
+    this.visible = true;
     this.headerText.setText(this.theme.accent("Thinking (parallel hypotheses)"));
 
     const lines: string[] = [];
@@ -170,6 +171,15 @@ export class HypothesisPanel {
    * Hide the panel (used when there are no active hypotheses).
    */
   hide(): void {
-    this.container.setVisible(false);
+    this.visible = false;
+    this.headerText.setText("");
+    this.hypothesesText.setText("");
+  }
+
+  /**
+   * Check if the panel is currently visible.
+   */
+  isVisible(): boolean {
+    return this.visible;
   }
 }

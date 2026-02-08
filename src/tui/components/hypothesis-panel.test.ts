@@ -8,7 +8,7 @@ import {
   formatHypothesisOutcome,
   formatHypothesisScore,
   formatHypothesisStatus,
-} from "./components/hypothesis-panel.js";
+} from "./hypothesis-panel.js";
 
 describe("hypothesis-panel formatters", () => {
   describe("formatHypothesisStatus", () => {

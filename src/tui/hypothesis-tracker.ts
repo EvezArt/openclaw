@@ -171,7 +171,7 @@ export class HypothesisTracker {
 
     // If still over limit, remove oldest runs
     if (this.runs.size > 200) {
-      const sorted = Array.from(this.runs.entries()).sort((a, b) => a[1].lastTs - b[1].lastTs);
+      const sorted = Array.from(this.runs.entries()).toSorted((a, b) => a[1].lastTs - b[1].lastTs);
       const removeCount = this.runs.size - 150;
       for (let i = 0; i < removeCount && i < sorted.length; i++) {
         this.runs.delete(sorted[i][0]);

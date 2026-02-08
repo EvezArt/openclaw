@@ -529,7 +529,13 @@ export async function runTui(opts: TuiOptions) {
   const { refreshAgents, refreshSessionInfo, loadHistory, setSession, abortActive } =
     sessionActions;
 
-  const hypothesisPanel = new HypothesisPanel(theme);
+  const hypothesisPanel = new HypothesisPanel({
+    accent: theme.accent,
+    success: theme.success,
+    error: theme.error,
+    muted: theme.dim,
+    warn: theme.accentSoft,
+  });
   hypothesisContainer.addChild(hypothesisPanel.getContainer());
 
   const { handleChatEvent, handleAgentEvent } = createEventHandlers({
