@@ -309,17 +309,21 @@ async function discoverWideAreaViaTailnetDns(
 
   const tailscaleCandidates = ["tailscale", "/Applications/Tailscale.app/Contents/MacOS/Tailscale"];
   let ips: string[] = [];
-  for (const candidate of tailscaleCandidates) {
-    try {
-      const res = await run([candidate, "status", "--json"], {
+  // Try all candidates in parallel instead of sequentially
+  const candidateResults = await Promise.allSettled(
+    tailscaleCandidates.map((candidate) =>
+      run([candidate, "status", "--json"], {
         timeoutMs: Math.max(1, Math.min(700, remainingMs())),
-      });
-      ips = parseTailscaleStatusIPv4s(res.stdout);
+      }),
+    ),
+  );
+
+  for (const result of candidateResults) {
+    if (result.status === "fulfilled") {
+      ips = parseTailscaleStatusIPv4s(result.value.stdout);
       if (ips.length > 0) {
         break;
       }
-    } catch {
-      // ignore
     }
   }
   if (ips.length === 0) {
