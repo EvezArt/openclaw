@@ -1,4 +1,3 @@
-import { fetchWithTimeout } from "../infra/timeout.js";
 import { makeProxyFetch } from "./proxy.js";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
