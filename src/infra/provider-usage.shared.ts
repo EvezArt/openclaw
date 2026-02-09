@@ -1,4 +1,5 @@
 import { normalizeProviderId } from "../agents/model-selection.js";
+import { withTimeoutFallback } from "./timeout.js";
 import type { UsageProviderId } from "./provider-usage.types.js";
 
 export const DEFAULT_TIMEOUT_MS = 5000;
@@ -47,17 +48,5 @@ export const clampPercent = (value: number) =>
   Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0));
 
 export const withTimeout = async <T>(work: Promise<T>, ms: number, fallback: T): Promise<T> => {
-  let timeout: NodeJS.Timeout | undefined;
-  try {
-    return await Promise.race([
-      work,
-      new Promise<T>((resolve) => {
-        timeout = setTimeout(() => resolve(fallback), ms);
-      }),
-    ]);
-  } finally {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-  }
+  return withTimeoutFallback(work, ms, fallback);
 };

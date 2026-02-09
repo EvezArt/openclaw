@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "../infra/timeout.js";
 import { makeProxyFetch } from "./proxy.js";
 
 const TELEGRAM_API_BASE = "https://api.telegram.org";
@@ -17,20 +18,6 @@ export type TelegramProbe = {
   webhook?: { url?: string | null; hasCustomCert?: boolean | null };
 };
 
-async function fetchWithTimeout(
-  url: string,
-  timeoutMs: number,
-  fetcher: typeof fetch,
-): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetcher(url, { signal: controller.signal });
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 export async function probeTelegram(
   token: string,
   timeoutMs: number,
@@ -48,7 +35,19 @@ export async function probeTelegram(
   };
 
   try {
-    const meRes = await fetchWithTimeout(`${base}/getMe`, timeoutMs, fetcher);
+    // Note: fetchWithTimeout uses global fetch, but we need custom fetcher for proxy support
+    // So we'll use a wrapper approach
+    const doFetch = async (url: string) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetcher(url, { signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    const meRes = await doFetch(`${base}/getMe`);
     const meJson = (await meRes.json()) as {
       ok?: boolean;
       description?: string;
@@ -83,7 +82,7 @@ export async function probeTelegram(
 
     // Try to fetch webhook info, but don't fail health if it errors.
     try {
-      const webhookRes = await fetchWithTimeout(`${base}/getWebhookInfo`, timeoutMs, fetcher);
+      const webhookRes = await doFetch(`${base}/getWebhookInfo`);
       const webhookJson = (await webhookRes.json()) as {
         ok?: boolean;
         result?: { url?: string; has_custom_certificate?: boolean };
