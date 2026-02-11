@@ -53,14 +53,13 @@ Date,Type,Security,Shares,Price,Amount,Balance
 
 ## Column Mapping
 
-The analysis scripts will attempt to auto-detect columns but you can specify mappings:
+The analysis scripts automatically detect columns based on common naming patterns:
+- Date columns: any column name containing "date"
+- Description columns: column names with "desc" or "merchant"
+- Amount columns: column names with "amount" or "debit"
+- Category columns: column names with "category" or "type"
 
-```bash
-python3 scripts/analyze_spending.py --input transactions.csv \
-  --date-column "Transaction Date" \
-  --description-column "Description" \
-  --amount-column "Amount"
-```
+If your CSV uses non-standard column names, you may need to rename them before processing.
 
 ## Data Cleaning
 

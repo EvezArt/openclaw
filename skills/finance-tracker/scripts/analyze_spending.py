@@ -98,7 +98,7 @@ def analyze_transactions(file_path, period="monthly"):
     # Analyze by category
     category_totals = defaultdict(float)
     for t in transactions:
-        if t["amount"] > 0:  # Only count expenses
+        if t["amount"] > 0:  # Positive amounts are expenses (standard bank export convention)
             category_totals[t["category"]] += t["amount"]
     
     # Summary statistics
