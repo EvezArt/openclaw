@@ -5,7 +5,7 @@
  */
 
 // Using json-canonicalize for deterministic JSON serialization
-import canonicalize from 'json-canonicalize';
+import { canonicalize } from 'json-canonicalize';
 
 export interface MarketData {
   symbol: string;

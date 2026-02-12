@@ -4,7 +4,7 @@
  * Composes all ops stack modules and provides golden hash testing
  */
 
-import canonicalize from 'json-canonicalize';
+import { canonicalize } from 'json-canonicalize';
 import { createHash } from 'node:crypto';
 
 // Import all modules

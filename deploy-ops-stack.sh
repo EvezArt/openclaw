@@ -103,8 +103,10 @@ elif [ -f "ops-stack/ops-stack.ts" ]; then
     elif command -v ts-node &> /dev/null; then
         ts-node ops-stack/ops-stack.ts
     else
-        # Try with node if .js exists
-        if [ -f "ops-stack/ops-stack.js" ]; then
+        # Try with npx tsx
+        if npx -v &> /dev/null; then
+            npx tsx ops-stack/ops-stack.ts
+        elif [ -f "ops-stack/ops-stack.js" ]; then
             node ops-stack/ops-stack.js
         else
             print_error "Cannot execute ops-stack.ts (tsx/ts-node not found and no compiled .js)"

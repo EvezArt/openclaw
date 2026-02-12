@@ -4,7 +4,7 @@
  * Demonstrates canonical JSON hashing for AI/ML data
  */
 
-import canonicalize from 'json-canonicalize';
+import { canonicalize } from 'json-canonicalize';
 
 export interface ModelConfig {
   name: string;

@@ -4,7 +4,7 @@
  * Demonstrates canonical JSON hashing for transaction data
  */
 
-import canonicalize from 'json-canonicalize';
+import { canonicalize } from 'json-canonicalize';
 
 export interface Transaction {
   id: string;
