@@ -109,8 +109,8 @@ echo ""
 echo "🧪 Testing Ops Stack modules..."
 
 # Create a test script
-cat > "${TEMP_DIR}/test-ops-stack.mjs" <<'EOF'
-import { createOpsStack, createDefaultOpsStackConfig } from '../dist/ops-stack.js';
+cat > "${TEMP_DIR}/test-ops-stack.mjs" <<EOF
+import { createOpsStack, createDefaultOpsStackConfig } from '${PROJECT_ROOT}/dist/ops-stack.js';
 
 async function testOpsStack() {
   console.log('Creating OpsStack with default configuration...');
