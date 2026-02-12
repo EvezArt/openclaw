@@ -2,7 +2,7 @@
  * Tests for the Ops Stack
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { createOpsStack, createDefaultOpsStackConfig } from "./ops-stack.js";
 
 describe("OpsStack", () => {
