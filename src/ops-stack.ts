@@ -7,11 +7,11 @@ import { Logger } from "tslog";
 import {
   createMarketIntelligence,
   type MarketIntelligenceConfig,
-} from "./market-intelligence/index.js";
-import { createNotifications, type NotificationConfig } from "./notifications/index.js";
-import { createAutomation, type AutomationConfig } from "./automation/index.js";
-import { createMonetization, type MonetizationConfig } from "./monetization/index.js";
-import { createAIEngine, type AIEngineConfig } from "./ai-engine/index.js";
+} from "./ops-stack/market-intelligence/index.js";
+import { createNotifications, type NotificationConfig } from "./ops-stack/notifications/index.js";
+import { createAutomation, type AutomationConfig } from "./ops-stack/automation/index.js";
+import { createMonetization, type MonetizationConfig } from "./ops-stack/monetization/index.js";
+import { createAIEngine, type AIEngineConfig } from "./ops-stack/ai-engine/index.js";
 
 export interface OpsStackConfig {
   marketIntelligence: MarketIntelligenceConfig;
@@ -64,10 +64,7 @@ export class OpsStack {
       config.monetization,
       this.logger.getSubLogger({ name: "Monetization" }),
     );
-    this.aiEngine = createAIEngine(
-      config.aiEngine,
-      this.logger.getSubLogger({ name: "AIEngine" }),
-    );
+    this.aiEngine = createAIEngine(config.aiEngine, this.logger.getSubLogger({ name: "AIEngine" }));
   }
 
   async initialize(): Promise<void> {
@@ -194,8 +191,8 @@ export async function createOpsStack(
 }
 
 // Export module types
-export * from "./market-intelligence/index.js";
-export * from "./notifications/index.js";
-export * from "./automation/index.js";
-export * from "./monetization/index.js";
-export * from "./ai-engine/index.js";
+export * from "./ops-stack/market-intelligence/index.js";
+export * from "./ops-stack/notifications/index.js";
+export * from "./ops-stack/automation/index.js";
+export * from "./ops-stack/monetization/index.js";
+export * from "./ops-stack/ai-engine/index.js";

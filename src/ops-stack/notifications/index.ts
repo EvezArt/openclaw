@@ -53,7 +53,7 @@ export class Notifications {
   }
 
   async getNotifications(limit?: number): Promise<Notification[]> {
-    const notifications = [...this.notifications].reverse();
+    const notifications = [...this.notifications].toReversed();
     return limit ? notifications.slice(0, limit) : notifications;
   }
 

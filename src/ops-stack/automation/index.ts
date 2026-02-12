@@ -62,7 +62,9 @@ export class Automation {
 
   private async executeTask(id: string, fn: () => Promise<unknown>): Promise<void> {
     const task = this.tasks.get(id);
-    if (!task) return;
+    if (!task) {
+      return;
+    }
 
     task.status = "running";
     this.logger.debug(`Task ${id} started`);
@@ -94,9 +96,6 @@ export class Automation {
   }
 }
 
-export function createAutomation(
-  config: AutomationConfig,
-  logger: Logger<unknown>,
-): Automation {
+export function createAutomation(config: AutomationConfig, logger: Logger<unknown>): Automation {
   return new Automation(config, logger);
 }
