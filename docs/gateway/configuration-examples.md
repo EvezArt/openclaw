@@ -45,6 +45,41 @@ Save to `~/.openclaw/openclaw.json` and you can DM the bot from that number.
 }
 ```
 
+### Fun alternatives (The Claw Family)
+
+Give your assistant a personality from the Claw Family:
+
+```json5
+{
+  ui: {
+    assistant: {
+      name: "CrawFather",  // Display name in web UI (or "CrawDad" for a friendlier vibe)
+      avatar: "🦞",
+    },
+  },
+  agents: {
+    defaults: {
+      workspace: "~/.openclaw/workspace",
+    },
+    list: [
+      {
+        id: "main",
+        identity: {
+          name: "CrawFather",  // or "CrawDad" for a friendlier vibe
+          theme: "wise crustacean mentor",
+          emoji: "🦞",
+        },
+      },
+    ],
+  },
+  channels: {
+    whatsapp: {
+      allowFrom: ["+15555550123"],
+    },
+  },
+}
+```
+
 ## Expanded example (major options)
 
 > JSON5 lets you use comments and trailing commas. Regular JSON works too.
