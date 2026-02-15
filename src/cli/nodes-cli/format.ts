@@ -1,20 +1,20 @@
 import type { NodeListNode, PairedNode, PairingList, PendingRequest } from "./types.js";
 
 export function formatAge(msAgo: number) {
-  const s = Math.max(0, Math.floor(msAgo / 1000));
-  if (s < 60) {
-    return `${s}s`;
+  const seconds = Math.max(0, Math.floor(msAgo / 1000));
+  if (seconds < 60) {
+    return `${seconds}s`;
   }
-  const m = Math.floor(s / 60);
-  if (m < 60) {
-    return `${m}m`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes}m`;
   }
-  const h = Math.floor(m / 60);
-  if (h < 24) {
-    return `${h}h`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h`;
   }
-  const d = Math.floor(h / 24);
-  return `${d}d`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
 }
 
 export function parsePairingList(value: unknown): PairingList {
