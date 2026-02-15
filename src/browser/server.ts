@@ -79,7 +79,6 @@ export async function stopBrowserControlServer(): Promise<void> {
   });
 
   try {
-    const current = state;
     if (current) {
       for (const name of Object.keys(current.resolved.profiles)) {
         try {
