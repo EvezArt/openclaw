@@ -231,9 +231,11 @@ function pruneOldRollingLogs(dir: string): void {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     const cutoff = Date.now() - MAX_LOG_AGE_MS;
     for (const entry of entries) {
+      // withFileTypes gives us type info without extra stat call
       if (!entry.isFile()) {
         continue;
       }
+      // Quick filter by name pattern before stat
       if (!entry.name.startsWith(`${LOG_PREFIX}-`) || !entry.name.endsWith(LOG_SUFFIX)) {
         continue;
       }
