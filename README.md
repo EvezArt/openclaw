@@ -115,6 +115,42 @@ pnpm gateway:watch
 
 Note: `pnpm openclaw ...` runs TypeScript directly (via `tsx`). `pnpm build` produces `dist/` for running via Node / the packaged `openclaw` binary.
 
+## GitHub Codespaces
+
+Open this repository in GitHub Codespaces for a pre-configured development environment with all language runtimes and canonical hashing libraries:
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/openclaw/openclaw)
+
+The devcontainer includes:
+- **Node.js 22+** with pnpm, json-canonicalize
+- **Go** with webpki/jcs library
+- **Python 3.12** with rfc8785
+- **Rust** with cargo (serde_jcs ready)
+- **Java 21** with Maven/Gradle
+- **Docker** for containerization
+- Language servers and extensions for all languages
+
+### Ops Stack Testing
+
+After opening in Codespaces, test the canonical hashing libraries:
+
+```bash
+# Run golden hash tests
+./deploy-ops-stack.sh
+
+# Or via npm script
+pnpm test:ops-stack
+```
+
+The ops stack includes modules for:
+- **market-intelligence**: Market data with canonical hashing
+- **notifications**: Multi-channel notification delivery
+- **automation**: Workflow orchestration
+- **monetization**: Payment and subscription management
+- **ai-engine**: AI/ML capabilities
+
+See `ops-stack/` directory for module implementations.
+
 ## Security defaults (DM access)
 
 OpenClaw connects to real messaging surfaces. Treat inbound DMs as **untrusted input**.

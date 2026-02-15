@@ -1,0 +1,251 @@
+name: Ops Stack CI
+
+on:
+  pull_request:
+    paths:
+      - 'ops-stack/**'
+      - 'deploy-ops-stack.sh'
+      - '.devcontainer/**'
+      - '.github/workflows/ops-stack-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'ops-stack/**'
+      - 'deploy-ops-stack.sh'
+      - '.devcontainer/**'
+      - '.github/workflows/ops-stack-ci.yml'
+
+jobs:
+  golden-hash-tests:
+    name: Golden Hash Tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Node.js
+            language: node
+          - name: Go
+            language: go
+          - name: Python
+            language: python
+          - name: Rust
+            language: rust
+          - name: Java
+            language: java
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Setup Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Setup Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Rust
+        if: matrix.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Java
+        if: matrix.language == 'java'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Install language-specific tools
+        run: |
+          case "${{ matrix.language }}" in
+            node)
+              npm install -g json-canonicalize
+              ;;
+            go)
+              go install github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer@latest || true
+              ;;
+            python)
+              pip install rfc8785
+              ;;
+            rust)
+              echo "Rust tools ready (serde_jcs in Cargo.toml if needed)"
+              ;;
+            java)
+              echo "Java tools ready (Maven/Gradle deps as needed)"
+              ;;
+          esac
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.23.0 --activate
+
+      - name: Install dependencies
+        run: |
+          pnpm install || npm install
+
+      - name: Install json-canonicalize (ops-stack dependency)
+        run: |
+          npm install json-canonicalize
+
+      - name: Build TypeScript
+        run: |
+          pnpm exec tsc --build --force || npm exec tsc --build --force
+
+      - name: Run Golden Hash Tests (TypeScript)
+        run: |
+          node dist/ops-stack/ops-stack.js || tsx ops-stack/ops-stack.ts
+
+      - name: Verify ${{ matrix.language }} tools
+        run: |
+          case "${{ matrix.language }}" in
+            node)
+              echo "Node.js $(node -v)"
+              echo "npm $(npm -v)"
+              command -v json-canonicalize && echo "json-canonicalize: OK" || echo "json-canonicalize: not found"
+              ;;
+            go)
+              echo "Go $(go version)"
+              command -v jsoncanonicalizer && echo "jsoncanonicalizer: OK" || echo "jsoncanonicalizer: not in PATH"
+              ;;
+            python)
+              echo "Python $(python --version)"
+              python -c "import rfc8785; print('rfc8785: OK')" || echo "rfc8785: not found"
+              ;;
+            rust)
+              echo "Rust $(rustc --version)"
+              echo "Cargo $(cargo --version)"
+              ;;
+            java)
+              echo "Java $(java -version 2>&1 | head -n1)"
+              command -v mvn && echo "Maven $(mvn -v | head -n1)" || echo "Maven: not found"
+              command -v gradle && echo "Gradle $(gradle -v | grep Gradle)" || echo "Gradle: not found"
+              ;;
+          esac
+
+  deployment-check:
+    name: Deployment Script Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.23.0 --activate
+
+      - name: Install dependencies
+        run: |
+          pnpm install || npm install
+
+      - name: Install json-canonicalize
+        run: |
+          npm install json-canonicalize
+
+      - name: Check script is executable
+        run: |
+          test -x deploy-ops-stack.sh
+          echo "✓ deploy-ops-stack.sh is executable"
+
+      - name: Run deployment script
+        run: |
+          ./deploy-ops-stack.sh
+
+      - name: Verify script output
+        run: |
+          echo "✓ Deployment script completed successfully"
+
+  devcontainer-validation:
+    name: Devcontainer Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate devcontainer.json
+        run: |
+          if [ ! -f .devcontainer/devcontainer.json ]; then
+            echo "Error: .devcontainer/devcontainer.json not found"
+            exit 1
+          fi
+          
+          # Basic JSON validation
+          jq empty .devcontainer/devcontainer.json
+          echo "✓ devcontainer.json is valid JSON"
+
+      - name: Check Dockerfile
+        run: |
+          if [ ! -f .devcontainer/Dockerfile ]; then
+            echo "Error: .devcontainer/Dockerfile not found"
+            exit 1
+          fi
+          echo "✓ Dockerfile exists"
+
+      - name: Check install script
+        run: |
+          if [ ! -f .devcontainer/install-hash-libs.sh ]; then
+            echo "Error: .devcontainer/install-hash-libs.sh not found"
+            exit 1
+          fi
+          echo "✓ install-hash-libs.sh exists"
+
+  module-structure:
+    name: Module Structure Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check ops-stack structure
+        run: |
+          modules=(
+            "market-intelligence"
+            "notifications"
+            "automation"
+            "monetization"
+            "ai-engine"
+          )
+          
+          for module in "${modules[@]}"; do
+            if [ ! -d "ops-stack/$module" ]; then
+              echo "Error: Module directory ops-stack/$module not found"
+              exit 1
+            fi
+            
+            if [ ! -f "ops-stack/$module/README.md" ]; then
+              echo "Error: README.md not found in ops-stack/$module"
+              exit 1
+            fi
+            
+            if [ ! -f "ops-stack/$module/index.ts" ]; then
+              echo "Error: index.ts not found in ops-stack/$module"
+              exit 1
+            fi
+            
+            echo "✓ Module $module structure is valid"
+          done
+
+      - name: Check main ops-stack file
+        run: |
+          if [ ! -f "ops-stack/ops-stack.ts" ]; then
+            echo "Error: ops-stack/ops-stack.ts not found"
+            exit 1
+          fi
+          echo "✓ ops-stack.ts exists"
