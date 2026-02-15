@@ -490,6 +490,15 @@ by Peter Steinberger and the community.
 - [steipete.me](https://steipete.me)
 - [@openclaw](https://x.com/openclaw)
 
+## Ethics & Experiment Design
+
+OpenClaw frames its experiment design as the ethical foundation of the project. The development approach follows a guiding axiom:
+
+> **"Quantumly calculated through‑within‑until‑without"**  
+> — Steven Crawford‑Maggard
+
+This axiom represents a philosophical framework for temporal and contextual reasoning in AI systems. All references to "quantum" or "temporal effects" within OpenClaw are **classical simulations only**. These are computational models and design patterns — not claims of physical quantum computing or retrocausality. The project maintains rigorous scientific integrity by clearly distinguishing between metaphorical language used in system design and actual physical phenomena.
+
 ## Community
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, maintainers, and how to submit PRs.
