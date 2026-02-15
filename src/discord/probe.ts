@@ -1,3 +1,4 @@
+import { fetchWithTimeout as sharedFetchWithTimeout } from "../infra/timeout.js";
 import { resolveFetch } from "../infra/fetch.js";
 import { normalizeDiscordToken } from "./token.js";
 
@@ -58,6 +59,23 @@ export function resolveDiscordPrivilegedIntentsFromFlags(
   };
 }
 
+/**
+ * Local wrapper to support custom fetcher while using shared timeout logic
+ */
+async function fetchWithTimeout(
+  url: string,
+  timeoutMs: number,
+  fetcher: typeof fetch,
+  headers?: HeadersInit,
+): Promise<Response> {
+  const fetchImpl = resolveFetch(fetcher);
+  if (!fetchImpl) {
+    throw new Error("fetch is not available");
+  }
+  // Use the shared implementation via the custom fetcher
+  return sharedFetchWithTimeout(url, timeoutMs, { headers });
+}
+
 export async function fetchDiscordApplicationSummary(
   token: string,
   timeoutMs: number,
@@ -90,25 +108,6 @@ export async function fetchDiscordApplicationSummary(
     };
   } catch {
     return undefined;
-  }
-}
-
-async function fetchWithTimeout(
-  url: string,
-  timeoutMs: number,
-  fetcher: typeof fetch,
-  headers?: HeadersInit,
-): Promise<Response> {
-  const fetchImpl = resolveFetch(fetcher);
-  if (!fetchImpl) {
-    throw new Error("fetch is not available");
-  }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetchImpl(url, { signal: controller.signal, headers });
-  } finally {
-    clearTimeout(timer);
   }
 }
 

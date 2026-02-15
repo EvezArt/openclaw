@@ -6,19 +6,12 @@ import {
 } from "../markdown/ir.js";
 import { renderMarkdownWithMarkers } from "../markdown/render.js";
 import type { MarkdownTableMode } from "../config/types.base.js";
+import { escapeHtml, escapeHtmlAttr } from "../infra/html.js";
 
 export type TelegramFormattedChunk = {
   html: string;
   text: string;
 };
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function escapeHtmlAttr(text: string): string {
-  return escapeHtml(text).replace(/"/g, "&quot;");
-}
 
 function buildTelegramLink(link: MarkdownLinkSpan, _text: string) {
   const href = link.href.trim();
