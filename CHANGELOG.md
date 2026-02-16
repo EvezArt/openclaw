@@ -4,6 +4,21 @@ Docs: https://docs.openclaw.ai
 
 ## 2026.1.31
 
+### Added
+
+- **Privacy-Preserving Facial Motion Analysis** - New `openclaw facial-motion` command for real-time, consent-based facial motion tracking without identity recognition
+  - Webcam capture with stable FPS and timestamps
+  - Face detection and landmark tracking (stub implementation, extensible to TensorFlow.js/MediaPipe)
+  - Motion feature extraction: Eye Aspect Ratio (blink detection), Mouth Aspect Ratio, Head Pose approximation
+  - Cyclical metrics: blink frequency, dominant frequency (FFT), autocorrelation lag, spectral entropy, sample entropy
+  - Prediction module with Kalman filter, EMA, and AR forecasters
+  - NDJSON streaming to stdout for easy piping
+  - WebSocket server for real-time streaming
+  - Schema versioning for compatibility
+  - Comprehensive privacy consent workflow
+  - Full documentation with examples in `docs/facial-motion.md` and `docs/facial-motion-examples.md`
+  - 34 unit tests covering features, entropy, and configuration
+
 ### Changes
 
 ### Fixes
