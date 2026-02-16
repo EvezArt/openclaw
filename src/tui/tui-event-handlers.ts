@@ -1,5 +1,8 @@
 import type { TUI } from "@mariozechner/pi-tui";
 import type { ChatLog } from "./components/chat-log.js";
+import type { HypothesisPanel } from "./components/hypothesis-panel.js";
+import { HypothesisTracker } from "./hypothesis-tracker.js";
+import type { HypothesisEvent } from "./hypothesis-types.js";
 import { asString, extractTextFromMessage, isCommandMessage } from "./tui-formatters.js";
 import { TuiStreamAssembler } from "./tui-stream-assembler.js";
 import type { AgentEvent, ChatEvent, TuiStateAccess } from "./tui-types.js";
@@ -10,14 +13,16 @@ type EventHandlerContext = {
   state: TuiStateAccess;
   setActivityStatus: (text: string) => void;
   refreshSessionInfo?: () => Promise<void>;
+  hypothesisPanel?: HypothesisPanel;
 };
 
 export function createEventHandlers(context: EventHandlerContext) {
-  const { chatLog, tui, state, setActivityStatus, refreshSessionInfo } = context;
+  const { chatLog, tui, state, setActivityStatus, refreshSessionInfo, hypothesisPanel } = context;
   const finalizedRuns = new Map<string, number>();
   const sessionRuns = new Map<string, number>();
   let streamAssembler = new TuiStreamAssembler();
   let lastSessionKey = state.currentSessionKey;
+  const hypothesisTracker = new HypothesisTracker();
 
   const pruneRunMap = (runs: Map<string, number>) => {
     if (runs.size <= 200) {
@@ -190,6 +195,55 @@ export function createEventHandlers(context: EventHandlerContext) {
         setActivityStatus("error");
       }
       tui.requestRender();
+      return;
+    }
+    // Handle hypothesis events for CrawFather Survival Pack
+    if (evt.stream === "hypothesis") {
+      if (!hypothesisPanel) {
+        return;
+      }
+      const data = evt.data ?? {};
+      const kind = asString(data.kind, "");
+      const hypothesisId = asString(data.hypothesisId, "");
+      const timestamp = typeof data.timestamp === "number" ? data.timestamp : Date.now();
+
+      if (!kind || !hypothesisId) {
+        return;
+      }
+
+      const hypothesisEvent: HypothesisEvent = {
+        kind: kind as HypothesisEvent["kind"],
+        hypothesisId,
+        runId: evt.runId,
+        timestamp,
+        data: {
+          description: typeof data.description === "string" ? data.description : undefined,
+          score: typeof data.score === "number" ? data.score : undefined,
+          status: typeof data.status === "string" ? (data.status as any) : undefined,
+          outcome: typeof data.outcome === "string" ? (data.outcome as any) : undefined,
+          evidence:
+            data.evidence && typeof data.evidence === "object" ? (data.evidence as any) : undefined,
+        },
+      };
+
+      hypothesisTracker.processEvent(hypothesisEvent);
+
+      // Update panel with current hypotheses for active run
+      if (isActiveRun) {
+        const hypotheses = hypothesisTracker.getRunHypotheses(evt.runId);
+        hypothesisPanel.render(hypotheses);
+      }
+
+      tui.requestRender();
+      return;
+    }
+    // Handle system and heartbeat events (tracked but not rendered in panel)
+    if (evt.stream === "system" || evt.stream === "heartbeat") {
+      // CrawFather run tracking: update session key if available
+      if (evt.data?.sessionKey && typeof evt.data.sessionKey === "string") {
+        hypothesisTracker.setRunSessionKey(evt.runId, evt.data.sessionKey);
+      }
+      return;
     }
   };
 
