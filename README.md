@@ -490,10 +490,24 @@ by Peter Steinberger and the community.
 - [steipete.me](https://steipete.me)
 - [@openclaw](https://x.com/openclaw)
 
+## Contributing & Development
+
+Want to contribute to OpenClaw? Check out these resources:
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines, maintainers, PR process
+- **[DEVELOPMENT_AGENDA.md](DEVELOPMENT_AGENDA.md)** - Prioritized task list (P0-P3) for contributors
+- **[Task Prioritization Guide](docs/development/task-prioritization-guide.md)** - Framework for priority decisions
+- **[Development Docs](docs/development/)** - Internal development documentation
+
+AI/vibe-coded PRs welcome! 🤖 Just mark them as AI-assisted.
+
+Looking for something to work on? Start with the [Development Agenda](DEVELOPMENT_AGENDA.md) or check [GitHub Issues](https://github.com/openclaw/openclaw/issues) for "good first issue" labels.
+
 ## Community
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, maintainers, and how to submit PRs.
-AI/vibe-coded PRs welcome! 🤖
+- **Discord:** [discord.gg/clawd](https://discord.gg/clawd)
+- **GitHub:** [github.com/openclaw/openclaw](https://github.com/openclaw/openclaw)
+- **X/Twitter:** [@openclaw](https://x.com/openclaw)
 
 Special thanks to [Mario Zechner](https://mariozechner.at/) for his support and for
 [pi-mono](https://github.com/badlogic/pi-mono).
