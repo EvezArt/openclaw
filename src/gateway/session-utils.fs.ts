@@ -6,19 +6,18 @@ import { resolveSessionTranscriptPath } from "../config/sessions.js";
 import { stripEnvelope } from "./chat-sanitize.js";
 import type { SessionPreviewItem } from "./session-utils.types.js";
 
-export function readSessionMessages(
+export async function readSessionMessages(
   sessionId: string,
   storePath: string | undefined,
   sessionFile?: string,
-): unknown[] {
-  const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile);
-
-  const filePath = candidates.find((p) => fs.existsSync(p));
+): Promise<unknown[]> {
+  const filePath = getCachedTranscriptPath(sessionId, storePath, sessionFile);
   if (!filePath) {
     return [];
   }
 
-  const lines = fs.readFileSync(filePath, "utf-8").split(/\r?\n/);
+  const content = await fs.promises.readFile(filePath, "utf-8");
+  const lines = content.split(/\r?\n/);
   const messages: unknown[] = [];
   for (const line of lines) {
     if (!line.trim()) {
@@ -35,6 +34,9 @@ export function readSessionMessages(
   }
   return messages;
 }
+
+// Cache for session transcript candidate paths to avoid repeated fs.existsSync calls
+const transcriptPathCache = new Map<string, string>();
 
 export function resolveSessionTranscriptCandidates(
   sessionId: string,
@@ -56,6 +58,39 @@ export function resolveSessionTranscriptCandidates(
   const home = os.homedir();
   candidates.push(path.join(home, ".openclaw", "sessions", `${sessionId}.jsonl`));
   return candidates;
+}
+
+function getCachedTranscriptPath(
+  sessionId: string,
+  storePath: string | undefined,
+  sessionFile?: string,
+  agentId?: string,
+): string | null {
+  const cacheKey = `${sessionId}:${storePath}:${sessionFile}:${agentId}`;
+
+  // Check cache first
+  const cached = transcriptPathCache.get(cacheKey);
+  if (cached && fs.existsSync(cached)) {
+    return cached;
+  }
+
+  // Find valid path
+  const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile, agentId);
+  const filePath = candidates.find((p) => fs.existsSync(p)) ?? null;
+
+  // Cache the result
+  if (filePath) {
+    transcriptPathCache.set(cacheKey, filePath);
+    // Limit cache size to prevent memory growth
+    if (transcriptPathCache.size > 1000) {
+      const firstKey = transcriptPathCache.keys().next().value;
+      if (firstKey !== undefined) {
+        transcriptPathCache.delete(firstKey);
+      }
+    }
+  }
+
+  return filePath;
 }
 
 export function archiveFileOnDisk(filePath: string, reason: string): string {
@@ -80,15 +115,23 @@ export function capArrayByJsonBytes<T>(
   if (items.length === 0) {
     return { items, bytes: 2 };
   }
-  const parts = items.map((item) => jsonUtf8Bytes(item));
-  let bytes = 2 + parts.reduce((a, b) => a + b, 0) + (items.length - 1);
+  // Combine map and reduce into single pass
+  let totalBytes = 2; // Array brackets
+  const parts: number[] = [];
+  for (const item of items) {
+    const size = jsonUtf8Bytes(item);
+    parts.push(size);
+    totalBytes += size;
+  }
+  totalBytes += items.length - 1; // Commas between items
+
   let start = 0;
-  while (bytes > maxBytes && start < items.length - 1) {
-    bytes -= parts[start] + 1;
+  while (totalBytes > maxBytes && start < items.length - 1) {
+    totalBytes -= parts[start] + 1;
     start += 1;
   }
   const next = start > 0 ? items.slice(start) : items;
-  return { items: next, bytes };
+  return { items: next, bytes: totalBytes };
 }
 
 const MAX_LINES_TO_SCAN = 10;
@@ -125,8 +168,7 @@ export function readFirstUserMessageFromTranscript(
   sessionFile?: string,
   agentId?: string,
 ): string | null {
-  const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile, agentId);
-  const filePath = candidates.find((p) => fs.existsSync(p));
+  const filePath = getCachedTranscriptPath(sessionId, storePath, sessionFile, agentId);
   if (!filePath) {
     return null;
   }
@@ -178,8 +220,7 @@ export function readLastMessagePreviewFromTranscript(
   sessionFile?: string,
   agentId?: string,
 ): string | null {
-  const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile, agentId);
-  const filePath = candidates.find((p) => fs.existsSync(p));
+  const filePath = getCachedTranscriptPath(sessionId, storePath, sessionFile, agentId);
   if (!filePath) {
     return null;
   }
@@ -439,8 +480,7 @@ export function readSessionPreviewItemsFromTranscript(
   maxItems: number,
   maxChars: number,
 ): SessionPreviewItem[] {
-  const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile, agentId);
-  const filePath = candidates.find((p) => fs.existsSync(p));
+  const filePath = getCachedTranscriptPath(sessionId, storePath, sessionFile, agentId);
   if (!filePath) {
     return [];
   }
