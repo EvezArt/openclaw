@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { runCommandWithTimeout } from "../process/exec.js";
 import { parseSemver } from "./runtime-guard.js";
+import { fetchWithTimeout } from "./timeout.js";
 import { channelToNpmTag, type UpdateChannel } from "./update-channels.js";
 
 export type PackageManager = "pnpm" | "bun" | "npm" | "unknown";
@@ -287,16 +288,6 @@ export async function checkDepsStatus(params: {
     lockfilePath,
     markerPath,
   };
-}
-
-async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), Math.max(250, timeoutMs));
-  try {
-    return await fetch(url, { signal: ctrl.signal });
-  } finally {
-    clearTimeout(t);
-  }
 }
 
 export async function fetchNpmLatestVersion(params?: {
