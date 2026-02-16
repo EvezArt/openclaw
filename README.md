@@ -27,6 +27,20 @@ If you want a personal, single-user assistant that feels local, fast, and always
 
 ---
 
+## 🔮 Vision: A Runtime for the Handoff
+
+**What makes OpenClaw different?**
+
+OpenClaw isn't another AI wrapper. It's a **runtime for the handoff from narrative to measurement** — built for a world where proof replaces promise, where verification outlasts belief, and where procedure survives when everything else breaks.
+
+- 🎯 **[The Vision](VISION.md)** - The speculative chronicle: from belief to proof, from narrative to measurement
+- 🏗️ **[Vision to Implementation](docs/handshakeos/VISION_TO_IMPLEMENTATION.md)** - How HandshakeOS-E makes it real
+- 📊 **[HandshakeOS-E Overview](docs/handshakeos/README.md)** - Universal events, intent tokens, parallel hypotheses
+
+**Not another tool. A runtime for survival.**
+
+---
+
 ## 🚀 For Developers & Teams
 
 **Integrating OpenClaw into your project?**
