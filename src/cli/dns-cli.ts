@@ -14,22 +14,22 @@ import { theme } from "../terminal/theme.js";
 
 type RunOpts = { allowFailure?: boolean; inherit?: boolean };
 
-function run(cmd: string, args: string[], opts?: RunOpts): string {
-  const res = spawnSync(cmd, args, {
+function runCommand(cmd: string, args: string[], opts?: RunOpts): string {
+  const processResult = spawnSync(cmd, args, {
     encoding: "utf-8",
     stdio: opts?.inherit ? "inherit" : "pipe",
   });
-  if (res.error) {
-    throw res.error;
+  if (processResult.error) {
+    throw processResult.error;
   }
-  if (!opts?.allowFailure && res.status !== 0) {
+  if (!opts?.allowFailure && processResult.status !== 0) {
     const errText =
-      typeof res.stderr === "string" && res.stderr.trim()
-        ? res.stderr.trim()
-        : `exit ${res.status ?? "unknown"}`;
+      typeof processResult.stderr === "string" && processResult.stderr.trim()
+        ? processResult.stderr.trim()
+        : `exit ${processResult.status ?? "unknown"}`;
     throw new Error(`${cmd} ${args.join(" ")} failed: ${errText}`);
   }
-  return typeof res.stdout === "string" ? res.stdout : "";
+  return typeof processResult.stdout === "string" ? processResult.stdout : "";
 }
 
 function writeFileSudoIfNeeded(filePath: string, content: string): void {
@@ -43,16 +43,16 @@ function writeFileSudoIfNeeded(filePath: string, content: string): void {
     }
   }
 
-  const res = spawnSync("sudo", ["tee", filePath], {
+  const processResult = spawnSync("sudo", ["tee", filePath], {
     input: content,
     encoding: "utf-8",
     stdio: ["pipe", "ignore", "inherit"],
   });
-  if (res.error) {
-    throw res.error;
+  if (processResult.error) {
+    throw processResult.error;
   }
-  if (res.status !== 0) {
-    throw new Error(`sudo tee ${filePath} failed: exit ${res.status ?? "unknown"}`);
+  if (processResult.status !== 0) {
+    throw new Error(`sudo tee ${filePath} failed: exit ${processResult.status ?? "unknown"}`);
   }
 }
 
@@ -67,7 +67,7 @@ function mkdirSudoIfNeeded(dirPath: string): void {
     }
   }
 
-  run("sudo", ["mkdir", "-p", dirPath], { inherit: true });
+  runCommand("sudo", ["mkdir", "-p", dirPath], { inherit: true });
 }
 
 function zoneFileNeedsBootstrap(zonePath: string): boolean {
@@ -83,7 +83,7 @@ function zoneFileNeedsBootstrap(zonePath: string): boolean {
 }
 
 function detectBrewPrefix(): string {
-  const out = run("brew", ["--prefix"]);
+  const out = runCommand("brew", ["--prefix"]);
   const prefix = out.trim();
   if (!prefix) {
     throw new Error("failed to resolve Homebrew prefix");
@@ -195,8 +195,8 @@ export function registerDnsCli(program: Command) {
       const importGlob = path.join(confDir, "*.server");
       const serverPath = path.join(confDir, `${wideAreaDomain.replace(/\.$/, "")}.server`);
 
-      run("brew", ["list", "coredns"], { allowFailure: true });
-      run("brew", ["install", "coredns"], {
+      runCommand("brew", ["list", "coredns"], { allowFailure: true });
+      runCommand("brew", ["install", "coredns"], {
         inherit: true,
         allowFailure: true,
       });
@@ -248,7 +248,7 @@ export function registerDnsCli(program: Command) {
 
       defaultRuntime.log("");
       defaultRuntime.log(theme.heading("Starting CoreDNS (sudo)…"));
-      run("sudo", ["brew", "services", "restart", "coredns"], {
+      runCommand("sudo", ["brew", "services", "restart", "coredns"], {
         inherit: true,
       });
 
