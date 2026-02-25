@@ -146,7 +146,7 @@ On sync, validate checksum and replay events from `position + 1`.
 
 - `POST /command` submit decision or override
 - `GET /checkpoint/latest?streamId=agent:<id>`
-- `GET /sync?token=<CheckpointToken>`
+- `POST /sync` (include `CheckpointToken` in request body or `Authorization: Bearer` header)
 - `WS /stream?streamId=world:<region>`
 - `GET /projection/<name>`
 
