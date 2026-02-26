@@ -22,6 +22,14 @@
   ],
   "redirects": [
     {
+      "source": "/crawfather",
+      "destination": "/concepts/crawfather-agent"
+    },
+    {
+      "source": "/crawfather/",
+      "destination": "/concepts/crawfather-agent"
+    },
+    {
       "source": "/cron",
       "destination": "/cron-jobs"
     },
@@ -923,6 +931,7 @@
           "concepts/architecture",
           "concepts/agent",
           "concepts/agent-loop",
+          "concepts/crawfather-agent",
           "concepts/system-prompt",
           "concepts/context",
           "token-use",

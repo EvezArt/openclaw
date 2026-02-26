@@ -108,6 +108,10 @@ export async function runTui(opts: TuiOptions) {
   let statusStartedAt: number | null = null;
   let lastActivityStatus = activityStatus;
 
+  // CrawFather hypothesis tracking
+  const activeHypotheses = new Map<string, import("./tui-types.js").HypothesisInfo>();
+  let hypothesesVisible = false;
+
   const state: TuiStateAccess = {
     get agentDefaultId() {
       return agentDefaultId;
@@ -222,6 +226,15 @@ export async function runTui(opts: TuiOptions) {
     },
     set lastCtrlCAt(value) {
       lastCtrlCAt = value;
+    },
+    get activeHypotheses() {
+      return activeHypotheses;
+    },
+    get hypothesesVisible() {
+      return hypothesesVisible;
+    },
+    set hypothesesVisible(value) {
+      hypothesesVisible = value;
     },
   };
 
