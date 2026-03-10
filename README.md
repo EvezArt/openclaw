@@ -86,6 +86,19 @@ openclaw agent --message "Ship checklist" --thinking high
 
 Upgrading? [Updating guide](https://docs.openclaw.ai/install/updating) (and run `openclaw doctor`).
 
+## Live Event Stream & Always-On UI
+
+OpenClaw provides a live event stream that broadcasts agent activity in real-time:
+
+```bash
+# Run CrawFather in always-on background mode
+pnpm dev:crawfather
+```
+
+Events are automatically broadcast to WebSocket clients connected to the Gateway. See:
+- [Live Event Stream docs](https://docs.openclaw.ai/live-events)
+- [CrawFather Agent docs](https://docs.openclaw.ai/crawfather)
+
 ## Development channels
 
 - **stable**: tagged releases (`vYYYY.M.D` or `vYYYY.M.D-<patch>`), npm dist-tag `latest`.
