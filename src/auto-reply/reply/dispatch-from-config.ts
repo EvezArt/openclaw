@@ -9,6 +9,10 @@ import {
   logSessionStateChange,
 } from "../../logging/diagnostic.js";
 import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
+import {
+  emitInteractionLedgerEvent,
+  hashInteractionContent,
+} from "../../hooks/interaction-ledger-events.js";
 import { getReplyFromConfig } from "../reply.js";
 import type { FinalizedMsgContext } from "../templating.js";
 import type { GetReplyOptions, ReplyPayload } from "../types.js";
@@ -141,9 +145,61 @@ export async function dispatchReplyFromConfig(params: {
   };
 
   if (shouldSkipDuplicateInbound(ctx)) {
+    emitInteractionLedgerEvent({
+      sessionKey: sessionKey ?? "unknown",
+      action: "inbound:skipped",
+      context: {
+        eventType: "message",
+        eventName: "inbound.accepted",
+        direction: "inbound",
+        channel,
+        accountId: ctx.AccountId,
+        sessionKey,
+        sessionId: ctx.SessionId,
+        messageId:
+          ctx.MessageSidFull ?? ctx.MessageSid ?? ctx.MessageSidFirst ?? ctx.MessageSidLast,
+        contentHash: hashInteractionContent(
+          typeof ctx.BodyForCommands === "string"
+            ? ctx.BodyForCommands
+            : typeof ctx.RawBody === "string"
+              ? ctx.RawBody
+              : ctx.Body,
+        ),
+        redaction: { content: true, identifiers: false, metadata: false },
+        outcome: { status: "skipped", reason: "duplicate" },
+      },
+    });
     recordProcessed("skipped", { reason: "duplicate" });
     return { queuedFinal: false, counts: dispatcher.getQueuedCounts() };
   }
+
+  emitInteractionLedgerEvent({
+    sessionKey: sessionKey ?? "unknown",
+    action: "inbound:accepted",
+    context: {
+      eventType: "message",
+      eventName: "inbound.accepted",
+      direction: "inbound",
+      channel,
+      accountId: ctx.AccountId,
+      sessionKey,
+      sessionId: ctx.SessionId,
+      messageId: ctx.MessageSidFull ?? ctx.MessageSid ?? ctx.MessageSidFirst ?? ctx.MessageSidLast,
+      contentHash: hashInteractionContent(
+        typeof ctx.BodyForCommands === "string"
+          ? ctx.BodyForCommands
+          : typeof ctx.RawBody === "string"
+            ? ctx.RawBody
+            : ctx.Body,
+      ),
+      redaction: { content: true, identifiers: false, metadata: false },
+      outcome: { status: "accepted" },
+      metadata: {
+        chatType: ctx.ChatType,
+        commandSource: ctx.CommandSource,
+      },
+    },
+  });
 
   const inboundAudio = isInboundAudioContext(ctx);
   const sessionTtsAuto = resolveSessionTtsAuto(ctx, cfg);
