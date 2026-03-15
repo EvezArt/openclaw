@@ -1,0 +1,18 @@
+{
+  "ledger": "EvezArt/evez-autonomous-ledger",
+  "brain": "EvezArt/evez-os",
+  "agents": "EvezArt/evez-agentnet",
+  "atlas": "EvezArt/Evez666",
+  "ephv": "EvezArt/ephv",
+  "runtime": "EvezArt/openclaw",
+  "dashboard": "EvezArt/lord-evez",
+  "memes": "EvezArt/evez-meme-bus",
+  "vault": "EvezArt/agentvault",
+  "marketplace": "EvezArt/animated-goggles",
+  "arg": "EvezArt/evez666-arg-canon",
+  "vcl": "EvezArt/evez-vcl",
+  "sim": "EvezArt/evez-sim",
+  "speedrun": "EvezArt/polymarket-speedrun",
+  "stream": "EvezArt/moltbot-live",
+  "surething": "EvezArt/surething-offline"
+}
