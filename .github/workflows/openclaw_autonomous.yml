@@ -2,7 +2,7 @@ name: OpenClaw Autonomous Runtime
 
 on:
   schedule:
-    - cron: "*/15 * * * *" # Every 15 minutes
+    - cron: "0 */12 * * *" # Every 12 hours
   workflow_dispatch:
     inputs:
       action:
@@ -27,7 +27,7 @@ env:
 jobs:
   runtime-health:
     name: Runtime Health Check
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     outputs:
       status: ${{ steps.health.outputs.status }}
     steps:
@@ -62,7 +62,7 @@ jobs:
 
   skill-registry:
     name: Skill Registry Freshness
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     needs: runtime-health
     steps:
       - uses: actions/checkout@v4
@@ -104,7 +104,7 @@ jobs:
 
   discover-skills:
     name: Auto-Discover Skills
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     needs: skill-registry
     if: github.event_name == 'schedule' || github.event.inputs.action == 'discover-skills' || github.event.inputs.action == 'full-check'
     steps:
@@ -132,7 +132,7 @@ jobs:
 
   cross-repo-orchestration:
     name: Cross-Repo Orchestration
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     needs: runtime-health
     if: github.event_name == 'schedule' || github.event.inputs.action == 'orchestrate' || github.event.inputs.action == 'full-check'
     steps:
@@ -167,7 +167,7 @@ jobs:
 
   log-to-ledger:
     name: Log to Ledger
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNNER_LABEL || 'ubuntu-latest' }}
     needs: [runtime-health, skill-registry, cross-repo-orchestration]
     if: always()
     steps:
