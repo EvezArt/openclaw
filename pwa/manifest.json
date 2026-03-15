@@ -1,0 +1,21 @@
+{
+  "name": "OpenClaw by EVEZ",
+  "short_name": "OpenClaw",
+  "description": "Your autonomous AI agent — runs 24/7, builds itself, works for you",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0f0f0f",
+  "background_color": "#0f0f0f",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

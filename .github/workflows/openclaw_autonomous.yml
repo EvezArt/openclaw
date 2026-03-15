@@ -1,0 +1,193 @@
+name: OpenClaw Autonomous Runtime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *" # Every 15 minutes
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to run"
+        required: false
+        default: "full-check"
+        type: choice
+        options:
+          - full-check
+          - discover-skills
+          - check-health
+          - orchestrate
+
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  runtime-health:
+    name: Runtime Health Check
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.health.outputs.status }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Check runtime modules exist
+        id: health
+        run: |
+          STATUS="green"
+
+          # Verify core files exist
+          for f in runtime/autonomous.py marketplace/registry.py agents/factory.py orchestrator/cross_repo.py; do
+            if [ ! -f "$f" ]; then
+              echo "::warning::Missing: $f"
+              STATUS="red"
+            fi
+          done
+
+          # Verify Python syntax
+          python -m py_compile runtime/autonomous.py 2>/dev/null || STATUS="yellow"
+          python -m py_compile marketplace/registry.py 2>/dev/null || STATUS="yellow"
+          python -m py_compile agents/factory.py 2>/dev/null || STATUS="yellow"
+          python -m py_compile orchestrator/cross_repo.py 2>/dev/null || STATUS="yellow"
+
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          echo "Runtime health: $STATUS"
+
+  skill-registry:
+    name: Skill Registry Freshness
+    runs-on: ubuntu-latest
+    needs: runtime-health
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Check registry freshness
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -c "
+          import json, sys
+          from pathlib import Path
+          from datetime import datetime, timezone, timedelta
+
+          registry = Path('marketplace/registry.json')
+          if not registry.exists():
+              print('::warning::Registry file missing')
+              sys.exit(0)
+
+          data = json.loads(registry.read_text())
+          updated = data.get('updated_at', '')
+          if updated:
+              ts = datetime.fromisoformat(updated.replace('Z', '+00:00'))
+              age = datetime.now(timezone.utc) - ts
+              if age > timedelta(days=1):
+                  print(f'::warning::Registry is {age.days} days old')
+              else:
+                  print(f'Registry is fresh ({age})')
+          else:
+              print('Registry has no timestamp')
+
+          skills = data.get('skills', {})
+          print(f'Skills in registry: {len(skills)}')
+          "
+
+  discover-skills:
+    name: Auto-Discover Skills
+    runs-on: ubuntu-latest
+    needs: skill-registry
+    if: github.event_name == 'schedule' || github.event.inputs.action == 'discover-skills' || github.event.inputs.action == 'full-check'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Discover new skills
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from marketplace.registry import SkillRegistry
+          registry = SkillRegistry()
+          count = registry.discover_from_github()
+          print(f'Discovered {count} new skill(s)')
+          print(f'Total skills: {len(registry.list_all())}')
+          "
+
+  cross-repo-orchestration:
+    name: Cross-Repo Orchestration
+    runs-on: ubuntu-latest
+    needs: runtime-health
+    if: github.event_name == 'schedule' || github.event.inputs.action == 'orchestrate' || github.event.inputs.action == 'full-check'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Run orchestration check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          python -c "
+          import sys
+          sys.path.insert(0, '.')
+          from orchestrator.cross_repo import CrossRepoOrchestrator
+          orch = CrossRepoOrchestrator()
+          results = orch.check_all()
+          orch.save_state()
+
+          for r in results:
+              health = r.get('health', 'unknown')
+              icon = {'green': '+', 'yellow': '~', 'red': '!', 'unknown': '?'}.get(health, '?')
+              print(f'[{icon}] {r[\"repo\"]} ({r.get(\"role\", \"\")}) - {health}')
+
+          s = orch.summary()
+          print(f'Ecosystem: {s[\"total_repos\"]} repos - {s[\"healthy\"]} green, {s[\"degraded\"]} yellow, {s[\"down\"]} red')
+          "
+
+  log-to-ledger:
+    name: Log to Ledger
+    runs-on: ubuntu-latest
+    needs: [runtime-health, skill-registry, cross-repo-orchestration]
+    if: always()
+    steps:
+      - name: Log workflow results
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUNTIME_STATUS="${{ needs.runtime-health.outputs.status }}"
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          # Create a log entry as a GitHub issue comment or issue
+          # Only log if there are problems to avoid noise
+          if [ "$RUNTIME_STATUS" != "green" ]; then
+            gh api repos/EvezArt/evez-autonomous-ledger/issues \
+              -f title="[openclaw-runtime] Health check: $RUNTIME_STATUS" \
+              -f body="**Automated health check report**
+
+          - Runtime status: $RUNTIME_STATUS
+          - Timestamp: $TIMESTAMP
+          - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+              -f "labels[]=runtime-log" \
+              2>/dev/null || echo "Ledger logging skipped (no access)"
+          fi
