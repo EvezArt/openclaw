@@ -80,11 +80,14 @@ export function capArrayByJsonBytes<T>(
   if (items.length === 0) {
     return { items, bytes: 2 };
   }
+  // Pre-calculate all byte sizes in one pass
   const parts = items.map((item) => jsonUtf8Bytes(item));
-  let bytes = 2 + parts.reduce((a, b) => a + b, 0) + (items.length - 1);
+  // Calculate total: 2 (brackets) + sum of parts + (n-1) commas
+  let bytes = 2 + parts.reduce((sum, partSize) => sum + partSize, 0) + (items.length - 1);
   let start = 0;
+  // Trim from start until under maxBytes
   while (bytes > maxBytes && start < items.length - 1) {
-    bytes -= parts[start] + 1;
+    bytes -= parts[start] + 1; // Remove item bytes + comma
     start += 1;
   }
   const next = start > 0 ? items.slice(start) : items;

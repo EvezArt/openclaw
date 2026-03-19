@@ -66,12 +66,24 @@ export async function checkInboundAccessControl(params: {
   const dmHasWildcard = allowFrom?.includes("*") ?? false;
   const normalizedAllowFrom =
     allowFrom && allowFrom.length > 0
-      ? allowFrom.filter((entry) => entry !== "*").map(normalizeE164)
+      ? // Combine filter and map for efficiency
+        allowFrom.reduce<string[]>((acc, entry) => {
+          if (entry !== "*") {
+            acc.push(normalizeE164(entry));
+          }
+          return acc;
+        }, [])
       : [];
   const groupHasWildcard = groupAllowFrom?.includes("*") ?? false;
   const normalizedGroupAllowFrom =
     groupAllowFrom && groupAllowFrom.length > 0
-      ? groupAllowFrom.filter((entry) => entry !== "*").map(normalizeE164)
+      ? // Combine filter and map for efficiency
+        groupAllowFrom.reduce<string[]>((acc, entry) => {
+          if (entry !== "*") {
+            acc.push(normalizeE164(entry));
+          }
+          return acc;
+        }, [])
       : [];
 
   // Group policy filtering:
