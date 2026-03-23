@@ -156,6 +156,58 @@ describe("web auto-reply", () => {
     await new Promise((resolve) => setTimeout(resolve, 5));
     await run;
   });
+
+  it("retries after startup connection failures with exponential backoff", async () => {
+    const closeResolvers: Array<() => void> = [];
+    const sleep = vi.fn(async () => {});
+    const listenerFactory = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("initial connect failed"))
+      .mockImplementation(async () => {
+        const onClose = new Promise<void>((res) => {
+          closeResolvers.push(res);
+        });
+        return { close: vi.fn(), onClose };
+      });
+    const runtime = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn(),
+    };
+    const controller = new AbortController();
+    const run = monitorWebChannel(
+      false,
+      listenerFactory,
+      true,
+      async () => ({ text: "ok" }),
+      runtime as never,
+      controller.signal,
+      {
+        heartbeatSeconds: 1,
+        reconnect: { initialMs: 10, maxMs: 10, maxAttempts: 3, factor: 2 },
+        sleep,
+      },
+    );
+
+    const waitForSecondCall = async () => {
+      const started = Date.now();
+      while (listenerFactory.mock.calls.length < 2 && Date.now() - started < 200) {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    };
+
+    await waitForSecondCall();
+    expect(listenerFactory).toHaveBeenCalledTimes(2);
+    expect(sleep).toHaveBeenCalledWith(250, controller.signal);
+    expect(runtime.error).toHaveBeenCalledWith(
+      expect.stringContaining("WhatsApp Web connection start failed. Retry 1/3"),
+    );
+
+    controller.abort();
+    closeResolvers[0]?.();
+    await run;
+  });
+
   it("forces reconnect when watchdog closes without onClose", async () => {
     vi.useFakeTimers();
     const sleep = vi.fn(async () => {});
