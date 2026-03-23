@@ -135,7 +135,10 @@ def _gh_post(url: str, body: dict[str, Any]) -> Any | None:
         payload = json.dumps(body).encode()
         req = Request(url, data=payload, headers={**_gh_headers(), "Content-Type": "application/json"})
         with urlopen(req, timeout=20) as resp:  # noqa: S310
-            return json.loads(resp.read())
+            response_body = resp.read()
+            if not response_body:
+                return {"status": getattr(resp, "status", None) or 204}
+            return json.loads(response_body)
     except (URLError, OSError, json.JSONDecodeError) as exc:
         logger.warning("POST %s failed: %s", url, exc)
         return None
@@ -228,9 +231,11 @@ class CrossRepoOrchestrator:
                 },
             }
             result = _gh_post(url, body)
-            if result is not None or True:  # dispatches return 204 (no body)
-                triggered.append(dep_repo)
-                logger.info("Triggered %s in %s (source: %s)", event_type, dep_repo, changed_repo)
+            if result is None:
+                logger.warning("Failed to trigger %s in %s (source: %s)", event_type, dep_repo, changed_repo)
+                continue
+            triggered.append(dep_repo)
+            logger.info("Triggered %s in %s (source: %s)", event_type, dep_repo, changed_repo)
 
         return triggered
 
