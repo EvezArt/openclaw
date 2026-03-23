@@ -4,6 +4,9 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   install-check:
     runs-on: blacksmith-4vcpu-ubuntu-2404
