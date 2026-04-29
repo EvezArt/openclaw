@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw — EVEZ AI Interface</title>
+<meta name="description" content="OpenClaw: AI-powered interface to the EVEZ service mesh. Chat, explore, and interact with decentralized intelligence.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #030706; --bg2: #0a1410; --bg3: #0d1f18;
+  --green: #00ff41; --green2: #00cc33; --green-dim: #003311; --green-bg: rgba(0,255,65,0.05);
+  --fire: #ff6600; --fire-dim: rgba(255,102,0,0.1);
+  --cyan: #00e5ff; --purple: #7733ff;
+  --text: #c8e6d0; --text-dim: #4a6b52;
+  --border: rgba(0,255,65,0.1); --border2: rgba(0,255,65,0.2);
+  --card-bg: rgba(10,20,16,0.8);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; overflow-x:hidden; }
+code, .mono { font-family:'JetBrains Mono',monospace; }
+
+/* Scanlines */
+body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,0.008) 2px,rgba(0,255,65,0.008) 4px); pointer-events:none; z-index:9999; }
+
+/* Header */
+header { position:sticky; top:0; z-index:100; backdrop-filter:blur(20px); background:rgba(3,7,6,0.85); border-bottom:1px solid var(--border); }
+.header-inner { max-width:1200px; margin:0 auto; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; }
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-mark { width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,var(--green),var(--cyan)); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:#000; font-family:'JetBrains Mono',monospace; }
+.logo-text { font-size:18px; font-weight:700; color:var(--green); letter-spacing:1px; font-family:'JetBrains Mono',monospace; }
+.logo-sub { font-size:10px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; }
+nav { display:flex; gap:8px; }
+nav a { color:var(--text-dim); text-decoration:none; font-size:13px; padding:6px 12px; border-radius:6px; transition:all 0.2s; font-weight:500; }
+nav a:hover, nav a.active { color:var(--green); background:var(--green-bg); }
+.status-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green); margin-right:4px; animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Hero */
+.hero { max-width:1200px; margin:0 auto; padding:80px 24px 40px; text-align:center; }
+.hero h1 { font-size:clamp(2.5rem,6vw,4rem); font-weight:700; background:linear-gradient(135deg,var(--green),var(--cyan),var(--purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; line-height:1.1; margin-bottom:16px; }
+.hero p { color:var(--text-dim); font-size:18px; max-width:600px; margin:0 auto 32px; line-height:1.6; }
+.hero-badges { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+.badge { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:600; border:1px solid var(--border); background:var(--bg2); color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
+.badge.live { border-color:rgba(255,0,0,0.3); color:#ff4444; }
+.badge.ai { border-color:rgba(0,229,255,0.3); color:var(--cyan); }
+.badge.fire { border-color:rgba(255,102,0,0.3); color:var(--fire); }
+
+/* Chat */
+.chat-section { max-width:800px; margin:0 auto; padding:0 24px 60px; }
+.chat-box { border:1px solid var(--border2); border-radius:16px; background:var(--bg2); overflow:hidden; }
+.chat-header { padding:12px 20px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.chat-header h3 { font-size:13px; color:var(--green); font-family:'JetBrains Mono',monospace; letter-spacing:1px; }
+.chat-model { font-size:11px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; }
+#chat-messages { min-height:300px; max-height:450px; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:12px; scroll-behavior:smooth; }
+.msg { max-width:85%; padding:12px 16px; border-radius:12px; font-size:14px; line-height:1.6; animation:fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.msg.system { align-self:center; background:var(--green-bg); color:var(--text-dim); font-size:12px; border-radius:8px; font-family:'JetBrains Mono',monospace; }
+.msg.user { align-self:flex-end; background:rgba(0,255,65,0.1); border:1px solid var(--border); color:var(--green); }
+.msg.assistant { align-self:flex-start; background:var(--bg3); border:1px solid var(--border); color:var(--text); }
+.msg.assistant .label { font-size:10px; color:var(--cyan); font-family:'JetBrains Mono',monospace; letter-spacing:1px; margin-bottom:4px; }
+.msg.loading { color:var(--text-dim); }
+.msg.loading::after { content:''; display:inline-block; width:12px; animation:dots 1.5s infinite; }
+@keyframes dots { 0%{content:'.'} 33%{content:'..'} 66%{content:'...'} }
+.chat-input-wrap { display:flex; border-top:1px solid var(--border); }
+#chat-input { flex:1; background:transparent; border:none; color:var(--text); padding:16px 20px; font-size:14px; font-family:'Inter',sans-serif; outline:none; }
+#chat-input::placeholder { color:var(--text-dim); }
+#chat-send { background:var(--green); color:#000; border:none; padding:16px 24px; font-weight:700; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:13px; transition:background 0.2s; }
+#chat-send:hover { background:var(--cyan); }
+#chat-send:disabled { background:var(--green-dim); cursor:not-allowed; }
+
+/* Services Grid */
+.services { max-width:1200px; margin:0 auto; padding:0 24px 60px; }
+.services h2 { font-size:24px; font-weight:700; color:var(--green); margin-bottom:8px; font-family:'JetBrains Mono',monospace; }
+.services .subtitle { color:var(--text-dim); margin-bottom:24px; font-size:14px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; }
+.card { background:var(--card-bg); border:1px solid var(--border); border-radius:12px; padding:20px; transition:all 0.3s; position:relative; overflow:hidden; }
+.card:hover { border-color:var(--border2); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,255,65,0.05); }
+.card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg,var(--green),transparent); opacity:0; transition:opacity 0.3s; }
+.card:hover::before { opacity:1; }
+.card-icon { width:36px; height:36px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:12px; }
+.card h3 { font-size:15px; font-weight:600; margin-bottom:6px; color:var(--text); }
+.card p { font-size:12px; color:var(--text-dim); line-height:1.5; margin-bottom:12px; }
+.card .endpoints { display:flex; flex-wrap:wrap; gap:4px; }
+.card .ep { font-size:10px; padding:2px 8px; border-radius:4px; background:var(--green-bg); color:var(--green-dim); border:1px solid var(--border); font-family:'JetBrains Mono',monospace; color:var(--green); }
+.card .status-badge { position:absolute; top:16px; right:16px; font-size:9px; padding:2px 8px; border-radius:10px; font-family:'JetBrains Mono',monospace; font-weight:600; }
+.card .status-badge.live { background:rgba(0,255,65,0.1); color:var(--green); border:1px solid rgba(0,255,65,0.2); }
+.card .status-badge.dev { background:var(--fire-dim); color:var(--fire); border:1px solid rgba(255,102,0,0.2); }
+
+/* Infra Section */
+.infra { max-width:1200px; margin:0 auto; padding:0 24px 60px; }
+.infra h2 { font-size:24px; font-weight:700; color:var(--cyan); margin-bottom:8px; font-family:'JetBrains Mono',monospace; }
+.infra .subtitle { color:var(--text-dim); margin-bottom:24px; font-size:14px; }
+.infra-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; }
+.infra-card { background:var(--card-bg); border:1px solid var(--border); border-radius:10px; padding:16px; display:flex; align-items:center; gap:12px; }
+.infra-card .icon { font-size:24px; }
+.infra-card .info h4 { font-size:13px; font-weight:600; color:var(--text); }
+.infra-card .info p { font-size:11px; color:var(--text-dim); }
+.infra-card .info .tag { font-size:9px; color:var(--green); font-family:'JetBrains Mono',monospace; background:var(--green-bg); padding:1px 6px; border-radius:3px; margin-top:4px; display:inline-block; }
+
+/* Footer */
+footer { border-top:1px solid var(--border); padding:24px; text-align:center; }
+footer p { font-size:11px; color:var(--text-dim); font-family:'JetBrains Mono',monospace; letter-spacing:1px; }
+footer a { color:var(--green); text-decoration:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-mark">OC</div>
+      <div>
+        <div class="logo-text">OpenClaw</div>
+        <div class="logo-sub">EVEZ Service Mesh Interface</div>
+      </div>
+    </div>
+    <nav>
+      <a href="#chat" class="active"><span class="status-dot"></span>AI Chat</a>
+      <a href="#services">Services</a>
+      <a href="#infra">Infrastructure</a>
+      <a href="https://evezstation.vercel.app" target="_blank">evezstation →</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <h1>The Claw Sees All</h1>
+  <p>AI-powered interface to the EVEZ decentralized service mesh. Chat with the cognition layer, monitor services, and explore the network organism.</p>
+  <div class="hero-badges">
+    <span class="badge live"><span class="status-dot"></span>LIVE</span>
+    <span class="badge ai">⚡ GroqCloud · llama-3.3-70b</span>
+    <span class="badge fire">🔥 6 Services</span>
+    <span class="badge">🛡️ Sentry Monitored</span>
+    <span class="badge">📋 Linear Tracked</span>
+  </div>
+</section>
+
+<section class="chat-section" id="chat">
+  <div class="chat-box">
+    <div class="chat-header">
+      <h3>◆ OPENCLAW TERMINAL</h3>
+      <span class="chat-model">llama-3.3-70b-versatile via GroqCloud</span>
+    </div>
+    <div id="chat-messages">
+      <div class="msg system">OpenClaw v1.0 · Connected to EVEZ cognition layer · Type to interact</div>
+    </div>
+    <div class="chat-input-wrap">
+      <input id="chat-input" type="text" placeholder="Ask the claw anything..." autocomplete="off">
+      <button id="chat-send">SEND →</button>
+    </div>
+  </div>
+</section>
+
+<section class="services" id="services">
+  <h2>◇ Service Mesh</h2>
+  <p class="subtitle">Six autonomous microservices forming the EVEZ neural backbone</p>
+  <div class="grid">
+    <div class="card">
+      <div class="status-badge live">LIVE</div>
+      <div class="card-icon" style="background:rgba(255,102,0,0.1)">🐙</div>
+      <h3>OctoKlaw</h3>
+      <p>Multi-tentacle web scraping and data extraction engine. Crawls, extracts, and structures data from any source.</p>
+      <div class="endpoints"><span class="ep">POST /api/extract</span><span class="ep">POST /api/analyze</span></div>
+    </div>
+    <div class="card">
+      <div class="status-badge live">LIVE</div>
+      <div class="card-icon" style="background:rgba(0,229,255,0.1)">📡</div>
+      <h3>MeshPulse</h3>
+      <p>Real-time service mesh health monitoring. Tracks uptime, latency, and anomaly detection across all nodes.</p>
+      <div class="endpoints"><span class="ep">GET /api/monitors</span><span class="ep">POST /api/monitors/:id/check</span></div>
+    </div>
+    <div class="card">
+      <div class="status-badge live">LIVE</div>
+      <div class="card-icon" style="background:rgba(119,51,255,0.1)">🔐</div>
+      <h3>QuantumSeal</h3>
+      <p>Cryptographic sealing and verification. Tamper-proof data integrity for the network organism.</p>
+      <div class="endpoints"><span class="ep">POST /api/seal</span><span class="ep">POST /api/verify</span></div>
+    </div>
+    <div class="card">
+      <div class="status-badge live">LIVE</div>
+      <div class="card-icon" style="background:rgba(0,255,65,0.1)">🔗</div>
+      <h3>NexusLink</h3>
+      <p>Intelligent link management and routing. Tracks, redirects, and analyzes network connections.</p>
+      <div class="endpoints"><span class="ep">POST /api/links</span><span class="ep">GET /api/links/:id</span></div>
+    </div>
+    <div class="card">
+      <div class="status-badge live">LIVE</div>
+      <div class="card-icon" style="background:rgba(230,180,40,0.1)">🔬</div>
+      <h3>SpectrumScan</h3>
+      <p>Deep content analysis and comparison engine. Scans text, images, and data for patterns and similarities.</p>
+      <div class="endpoints"><span class="ep">POST /api/scan</span><span class="ep">POST /api/compare</span></div>
+    </div>
+    <div class="card">
+      <div class="status-badge live">LIVE</div>
+      <div class="card-icon" style="background:rgba(255,68,68,0.1)">⚡</div>
+      <h3>VortexQ</h3>
+      <p>Distributed job queue and task orchestration. Async processing backbone for heavy workloads.</p>
+      <div class="endpoints"><span class="ep">POST /api/jobs</span><span class="ep">GET /api/jobs/:id</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="infra" id="infra">
+  <h2>◆ Infrastructure</h2>
+  <p class="subtitle">Every connection wired. Every service monitored. Full stack observability.</p>
+  <div class="infra-grid">
+    <div class="infra-card">
+      <div class="icon">▲</div>
+      <div class="info"><h4>Vercel</h4><p>Frontend hosting · OpenClaw + evezstation</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">⚡</div>
+      <div class="info"><h4>Supabase</h4><p>Postgres + Edge Functions · AI proxy</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">🧠</div>
+      <div class="info"><h4>GroqCloud</h4><p>LLM inference · llama-3.3-70b</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">🛡️</div>
+      <div class="info"><h4>Sentry</h4><p>Error monitoring · OpenClaw + evezstation</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">📋</div>
+      <div class="info"><h4>Linear</h4><p>Project tracking · EVEZ Platform board</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">🐙</div>
+      <div class="info"><h4>GitHub</h4><p>Source control · 94 repos</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">💳</div>
+      <div class="info"><h4>Stripe</h4><p>Payments · 6 products configured</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">☁️</div>
+      <div class="info"><h4>Cloudflare</h4><p>Edge network · DNS + Workers</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">🚀</div>
+      <div class="info"><h4>Fly.io</h4><p>Container hosting · VCL stream</p><span class="tag">PENDING</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">📺</div>
+      <div class="info"><h4>YouTube</h4><p>Live stream · VCL Topology</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">🔌</div>
+      <div class="info"><h4>Ngrok</h4><p>Tunneling · Dev access</p><span class="tag">CONNECTED</span></div>
+    </div>
+    <div class="infra-card">
+      <div class="icon">📐</div>
+      <div class="info"><h4>V0</h4><p>AI UI generation</p><span class="tag">CONNECTED</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>EVEZ-OS · OpenClaw v1.0 · Built by <a href="https://github.com/EvezArt" target="_blank">@EVEZ666</a> · Powered by the network organism</p>
+</footer>
+
+<script>
+// Chat functionality (client-side — calls evezstation health as demo)
+const messages = document.getElementById('chat-messages');
+const input = document.getElementById('chat-input');
+const sendBtn = document.getElementById('chat-send');
+
+const SYSTEM_MSG = `You are OpenClaw, the EVEZ platform's AI assistant. You help users understand and interact with the EVEZ service mesh. The EVEZ platform consists of 6 microservices (OctoKlaw, MeshPulse, QuantumSeal, NexusLink, SpectrumScan, VortexQ) running on evezstation.vercel.app, with Supabase backend, Stripe payments, and full monitoring via Sentry. Be concise, technical, and slightly cyberpunk in tone. Your creator is @EVEZ666. When asked about services, provide their actual endpoints. When asked about infrastructure, describe the connected stack (Vercel, Supabase, GroqCloud, Sentry, Linear, GitHub, Stripe, Cloudflare, Fly.io, YouTube).`;
+
+let history = [{ role: 'system', content: SYSTEM_MSG }];
+
+function addMessage(text, role) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  if (role === 'assistant') {
+    div.innerHTML = `<div class="label">◆ OPENCLAW</div>${text}`;
+  } else {
+    div.textContent = text;
+  }
+  messages.appendChild(div);
+  messages.scrollTop = messages.scrollHeight;
+  return div;
+}
+
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text) return;
+  
+  input.value = '';
+  sendBtn.disabled = true;
+  addMessage(text, 'user');
+  history.push({ role: 'user', content: text });
+  
+  const loading = addMessage('Thinking', 'assistant loading');
+  
+  try {
+    // Call Supabase Edge Function
+    const resp = await fetch('https://vziaqxquzohqskesuxgz.supabase.co/functions/v1/openclaw-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history.slice(-10), model: 'llama-3.3-70b-versatile' })
+    });
+    
+    const data = await resp.json();
+    const reply = data.choices?.[0]?.message?.content || data.error || 'No response from cognition layer.';
+    
+    loading.remove();
+    addMessage(reply, 'assistant');
+    history.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    loading.remove();
+    addMessage(`Connection error: ${e.message}. The claw will try again.`, 'system');
+  }
+  
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+sendBtn.addEventListener('click', sendMessage);
+input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+// Health check on load
+(async () => {
+  try {
+    const r = await fetch('https://evezstation.vercel.app/api/health');
+    if (r.ok) addMessage('evezstation.vercel.app is operational ✓', 'system');
+    else addMessage('evezstation health check returned ' + r.status, 'system');
+  } catch(e) {
+    addMessage('evezstation health check failed — may be cold starting', 'system');
+  }
+})();
+</script>
+
+</body>
+</html>
