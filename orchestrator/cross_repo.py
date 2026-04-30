@@ -228,9 +228,11 @@ class CrossRepoOrchestrator:
                 },
             }
             result = _gh_post(url, body)
-            if result is not None or True:  # dispatches return 204 (no body)
-                triggered.append(dep_repo)
-                logger.info("Triggered %s in %s (source: %s)", event_type, dep_repo, changed_repo)
+            if result is None:
+                logger.warning("Failed to trigger %s in %s (source: %s)", event_type, dep_repo, changed_repo)
+                continue
+            triggered.append(dep_repo)
+            logger.info("Triggered %s in %s (source: %s)", event_type, dep_repo, changed_repo)
 
         return triggered
 
