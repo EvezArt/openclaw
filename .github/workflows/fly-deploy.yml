@@ -1,0 +1,121 @@
+name: Deploy OpenClaw to Fly.io
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "App to deploy (gateway|dashboard|all)"
+        default: "all"
+        required: true
+
+jobs:
+  deploy-gateway:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create app if not exists
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl apps create evez-openclaw --org personal 2>/dev/null || true
+
+      - name: Create volume if not exists
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl volumes create openclaw_data --app evez-openclaw --region iad --size 5 2>/dev/null || true
+
+      - name: Set secrets
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl secrets set \
+            NODE_ENV=production \
+            OPENCLAW_STATE_DIR=/data \
+            SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY }} \
+            GROQ_API_KEY=${{ secrets.GROQ_API_KEY }} \
+            OPENCLAW_GATEWAY_TOKEN=${{ secrets.OPENCLAW_GATEWAY_TOKEN }} \
+            --app evez-openclaw 2>/dev/null || true
+
+      - name: Deploy evez-openclaw gateway
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          cat > fly-gateway.toml << 'EOF'
+          app = "evez-openclaw"
+          primary_region = "iad"
+          [build]
+          dockerfile = "Dockerfile"
+          [env]
+          NODE_ENV = "production"
+          OPENCLAW_PREFER_PNPM = "1"
+          OPENCLAW_STATE_DIR = "/data"
+          NODE_OPTIONS = "--max-old-space-size=1536"
+          [processes]
+          app = "node dist/index.js gateway --allow-unconfigured --port 3000 --bind lan"
+          [http_service]
+          internal_port = 3000
+          force_https = true
+          auto_stop_machines = false
+          auto_start_machines = true
+          min_machines_running = 1
+          processes = ["app"]
+          [[vm]]
+          size = "shared-cpu-2x"
+          memory = "2048mb"
+          [mounts]
+          source = "openclaw_data"
+          destination = "/data"
+          EOF
+          flyctl deploy --remote-only --config fly-gateway.toml
+
+      - name: Status
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl status --app evez-openclaw
+          echo "Gateway live at https://evez-openclaw.fly.dev"
+
+  deploy-dashboard:
+    runs-on: ubuntu-latest
+    needs: deploy-gateway
+    if: github.event.inputs.app == 'all' || github.event.inputs.app == 'dashboard' || github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Create dashboard app
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl apps create evez-openclaw-dashboard --org personal 2>/dev/null || true
+
+      - name: Deploy dashboard
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          cat > fly-dashboard.toml << 'EOF'
+          app = "evez-openclaw-dashboard"
+          primary_region = "iad"
+          [build]
+          dockerfile = "Dockerfile"
+          [env]
+          NODE_ENV = "production"
+          OPENCLAW_PREFER_PNPM = "1"
+          [processes]
+          app = "node dist/index.js control-ui --port 3001 --bind lan"
+          [http_service]
+          internal_port = 3001
+          force_https = true
+          auto_stop_machines = true
+          auto_start_machines = true
+          min_machines_running = 0
+          processes = ["app"]
+          [[vm]]
+          size = "shared-cpu-1x"
+          memory = "512mb"
+          EOF
+          flyctl deploy --remote-only --config fly-dashboard.toml || true
+          echo "Dashboard live at https://evez-openclaw-dashboard.fly.dev"
