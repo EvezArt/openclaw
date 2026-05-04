@@ -41,6 +41,10 @@ import { incrementCompactionCount } from "./session-updates.js";
 import type { TypingController } from "./typing.js";
 import { createTypingSignaler } from "./typing-mode.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import {
+  emitInteractionLedgerEvent,
+  hashInteractionContent,
+} from "../../hooks/interaction-ledger-events.js";
 
 const BLOCK_REPLY_SEND_TIMEOUT_MS = 15_000;
 
@@ -377,6 +381,39 @@ export async function runReplyAgent(params: {
     const cliSessionId = isCliProvider(providerUsed, cfg)
       ? runResult.meta.agentMeta?.sessionId?.trim()
       : undefined;
+    emitInteractionLedgerEvent({
+      sessionKey: sessionKey ?? "agent:unknown",
+      action: "model:completion",
+      context: {
+        eventType: "model",
+        eventName: "model.completion",
+        direction: "internal",
+        channel: (
+          sessionCtx.OriginatingChannel ??
+          sessionCtx.Surface ??
+          sessionCtx.Provider ??
+          "unknown"
+        ).toLowerCase(),
+        accountId: sessionCtx.AccountId,
+        sessionKey,
+        sessionId: cliSessionId ?? followupRun.run.sessionId,
+        contentHash: hashInteractionContent(
+          payloadArray.map((payload) => payload.text ?? "").join("\n"),
+        ),
+        redaction: { content: true, identifiers: false, metadata: false },
+        outcome: {
+          status: "completed",
+          reason: runResult.meta.error?.kind ?? "ok",
+          error: runResult.meta.error?.message,
+        },
+        metadata: {
+          provider: providerUsed,
+          model: modelUsed,
+          usage,
+          payloadCount: payloadArray.length,
+        },
+      },
+    });
     const contextTokensUsed =
       agentCfgContextTokens ??
       lookupContextTokens(modelUsed) ??

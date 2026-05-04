@@ -32,6 +32,20 @@ Logs all command events to a centralized audit file.
 openclaw hooks enable command-logger
 ```
 
+### 📒 interaction-ledger
+
+Records normalized interaction events (inbound, outbound, tool lifecycle, model completion, agent lifecycle).
+
+**Events**: `interaction`
+**What it does**: Appends versioned JSONL audit entries with content hashes.
+**Output**: `~/.openclaw/logs/interaction-ledger.jsonl`
+
+**Enable**:
+
+```bash
+openclaw hooks enable interaction-ledger
+```
+
 ### 😈 soul-evil
 
 Swaps injected `SOUL.md` content with `SOUL_EVIL.md` during a purge window or by random chance.
@@ -171,6 +185,7 @@ Currently supported events:
 - **command:stop**: `/stop` command
 - **agent:bootstrap**: Before workspace bootstrap files are injected
 - **gateway:startup**: Gateway startup (after channels start)
+- **interaction**: Normalized interaction ledger events across channels and agent lifecycle
 
 More event types coming soon (session lifecycle, agent errors, etc.).
 
@@ -180,7 +195,7 @@ Hook handlers receive an `InternalHookEvent` object:
 
 ```typescript
 interface InternalHookEvent {
-  type: "command" | "session" | "agent" | "gateway";
+  type: "command" | "session" | "agent" | "gateway" | "interaction";
   action: string; // e.g., 'new', 'reset', 'stop'
   sessionKey: string;
   context: Record<string, unknown>;
