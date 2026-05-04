@@ -2,8 +2,6 @@ import { getOpsConfig } from "../../config/schema.js";
 import { getLogger } from "../../logger/index.js";
 import { type IMarketProvider, type MarketQuote, RateLimiter } from "./types.js";
 
-const config = getOpsConfig();
-
 const logger = getLogger({ module: "coingecko-provider" });
 
 export class CoinGeckoProvider implements IMarketProvider {
@@ -12,6 +10,7 @@ export class CoinGeckoProvider implements IMarketProvider {
 
   async getQuote(symbol: string): Promise<MarketQuote> {
     await this.limiter.take();
+    const config = getOpsConfig();
     const coinId = symbol.toLowerCase();
     const url = `${config.COINGECKO_BASE_URL}/simple/price?ids=${encodeURIComponent(coinId)}&vs_currencies=usd`;
 

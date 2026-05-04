@@ -11,11 +11,23 @@ const logger = getLogger({ module: "twilio-adapter" });
 
 export class TwilioSmsAdapter implements NotificationAdapter {
   async send(message: NotificationMessage): Promise<NotificationDeliveryResult> {
+    return this.sendMessage({
+      to: message.to,
+      body: message.body,
+      channel: "sms",
+    });
+  }
+
+  protected async sendMessage(input: {
+    to: string;
+    body: string;
+    channel: NotificationDeliveryResult["channel"];
+  }): Promise<NotificationDeliveryResult> {
     const config = getOpsConfig();
     const body = new URLSearchParams({
-      To: message.to,
+      To: input.to,
       From: config.TWILIO_FROM_NUMBER,
-      Body: message.body,
+      Body: input.body,
     });
 
     const authToken = Buffer.from(
@@ -35,15 +47,28 @@ export class TwilioSmsAdapter implements NotificationAdapter {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      logger.error({ status: response.status, errorBody }, "Twilio message failed");
+      logger.error(
+        { status: response.status, errorBody, channel: input.channel },
+        "Twilio message failed",
+      );
       throw new Error(`Twilio message failed with status ${response.status}`);
     }
 
     const payload = (await response.json()) as { sid?: string };
     return {
-      channel: "sms",
+      channel: input.channel,
       delivered: true,
       providerMessageId: payload.sid,
     };
+  }
+}
+
+export class TwilioWhatsAppAdapter extends TwilioSmsAdapter {
+  async send(message: NotificationMessage): Promise<NotificationDeliveryResult> {
+    return this.sendMessage({
+      to: `whatsapp:${message.to}`,
+      body: message.body,
+      channel: "whatsapp",
+    });
   }
 }
