@@ -261,6 +261,33 @@ describe("parseLineDirectives", () => {
       const contents = flexMessage?.contents as { body: { contents: unknown[] } };
       expect(contents).toBeDefined();
     });
+
+    it("accepts gaming as playing status", () => {
+      const result = parseLineDirectives({
+        text: "[[media_player: Apex Match | Squad | Console | | gaming]]",
+      });
+
+      const flexMessage = getLineData(result).flexMessage as {
+        contents?: unknown;
+      };
+      expect(flexMessage).toBeDefined();
+      const serialized = JSON.stringify(flexMessage?.contents);
+      expect(serialized).toContain("Now Playing");
+    });
+
+    it("omits indicator for unknown status values", () => {
+      const result = parseLineDirectives({
+        text: "[[media_player: Unknown | Artist | Device | | queued]]",
+      });
+
+      const flexMessage = getLineData(result).flexMessage as {
+        contents?: unknown;
+      };
+      expect(flexMessage).toBeDefined();
+      const serialized = JSON.stringify(flexMessage?.contents);
+      expect(serialized).not.toContain("Now Playing");
+      expect(serialized).not.toContain("Paused");
+    });
   });
 
   describe("event", () => {
