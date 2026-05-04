@@ -6,6 +6,7 @@ skill definitions. Agents communicate via an in-process event bus.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import time
 import uuid
@@ -38,7 +39,7 @@ class AgentBus:
     async def publish(self, topic: str, payload: dict[str, Any]) -> None:
         for handler in self._subscribers.get(topic, []):
             try:
-                if asyncio.iscoroutinefunction(handler):
+                if inspect.iscoroutinefunction(handler):
                     await handler(payload)
                 else:
                     handler(payload)
@@ -105,6 +106,7 @@ class Agent:
     metrics: AgentMetrics = field(default_factory=AgentMetrics)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     _active_tasks: int = 0
+    _bus_handlers: dict[str, Callable[..., Any]] = field(default_factory=dict, repr=False)
 
     @property
     def name(self) -> str:
@@ -131,7 +133,7 @@ class Agent:
         start = time.monotonic()
 
         try:
-            if asyncio.iscoroutinefunction(handler):
+            if inspect.iscoroutinefunction(handler):
                 result = await handler(task)
             else:
                 result = handler(task)
@@ -203,7 +205,11 @@ class AgentFactory:
 
         # Subscribe to bus topics matching capabilities
         for cap in defn.capabilities:
-            self._bus.subscribe(cap, agent.handle)
+            # Keep the exact bound method object so unsubscribe removes the
+            # killed agent instead of leaving a stale bus subscription behind.
+            handler = agent.handle
+            agent._bus_handlers[cap] = handler
+            self._bus.subscribe(cap, handler)
 
         logger.info("Spawned agent '%s' (id=%s)", name, agent_id)
         return agent
@@ -215,7 +221,9 @@ class AgentFactory:
         agent.state = AgentState.STOPPED
         # Unsubscribe from bus
         for cap in agent.capabilities:
-            self._bus.unsubscribe(cap, agent.handle)
+            handler = agent._bus_handlers.get(cap)
+            if handler is not None:
+                self._bus.unsubscribe(cap, handler)
         logger.info("Killed agent '%s' (id=%s)", agent.name, agent_id)
         return True
 
