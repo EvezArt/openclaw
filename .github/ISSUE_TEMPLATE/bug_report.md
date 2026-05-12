@@ -1,34 +1,29 @@
 ---
-name: Bug report
-about: Report a problem or unexpected behavior in Clawdbot.
-title: "[Bug]: "
+name: Bug Report
+about: Report a bug or unexpected behavior
+title: '[BUG] '
 labels: bug
+assignees: ''
 ---
 
-## Summary
+## Description
+A clear description of what the bug is.
 
-What went wrong?
+## Steps to Reproduce
+1. 
+2. 
+3. 
 
-## Steps to reproduce
+## Expected Behavior
+What you expected to happen.
 
-1.
-2.
-3.
-
-## Expected behavior
-
-What did you expect to happen?
-
-## Actual behavior
-
-What actually happened?
+## Actual Behavior
+What actually happened.
 
 ## Environment
-
-- Clawdbot version:
 - OS:
-- Install method (pnpm/npx/docker/etc):
+- Version:
+- Node/Browser:
 
-## Logs or screenshots
-
-Paste relevant logs or add screenshots (redact secrets).
+## Additional Context
+Any other context, logs, or screenshots.
