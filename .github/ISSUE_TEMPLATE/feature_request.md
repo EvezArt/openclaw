@@ -1,22 +1,19 @@
 ---
-name: Feature request
-about: Suggest an idea or improvement for Clawdbot.
-title: "[Feature]: "
+name: Feature Request
+about: Suggest a new feature or enhancement
+title: '[FEATURE] '
 labels: enhancement
+assignees: ''
 ---
 
-## Summary
+## Problem
+What problem does this feature solve?
 
-Describe the problem you are trying to solve or the opportunity you see.
+## Proposed Solution
+Describe your proposed solution.
 
-## Proposed solution
+## Alternatives Considered
+Any alternative solutions or features you've considered.
 
-What would you like Clawdbot to do?
-
-## Alternatives considered
-
-Any other approaches you have considered?
-
-## Additional context
-
-Links, screenshots, or related issues.
+## Additional Context
+Any other context, screenshots, or references.
