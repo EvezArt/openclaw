@@ -1,0 +1,129 @@
+# OpenClaw Master Prompt
+
+## Project Overview
+**Name:** openclaw  
+**Version:** 2026.1.30  
+**License:** MIT  
+**Description:** WhatsApp gateway CLI (Bause it do it
+ileys web) with Pi RPC agent capabilities
+
+## Project Purpose
+OpenClaw is a WhatsApp messaging infrastructure project that provides a gateway CLI implementation using the Baileys library. It enables WhatsApp web functionality with RPC (Remote Procedure Call) agent capabilities, designed for building automated WhatsApp bots and messaging systems.
+
+## Repository Structure
+
+### Core Files
+- `package.json` - Main project configuration and dependencies
+- `openclaw.mjs` - Primary entry point
+- `LICENSE` - MIT license file
+- `INTEGRATION_MAP.md` - Integration documentation
+- `QUANTUM_COMPLETE.md` - Project completion documentation
+
+### Configuration Files
+- `pnpm-workspace.yaml` - pnpm workspace configuration
+- `pnpm-lock.yaml` - Dependency lock file
+- `zizmor.yml` - Zizmor configuration
+- Multiple vitest config files:
+  - `vitest.config.ts`
+    - `vitest.e2e.config.ts`
+      - `vitest.extensions.config.ts`
+        - `vitest.gateway.config.ts`
+          - `vitest.live.config.ts`
+            - `vitest.unit.config.ts`
+
+            ### Sub-packages
+            - `packages/clawdbot/` - Clawdbot package
+            - `packages/moltbot/` - Moltbot package
+
+            ## Technology Stack
+            - **Runtime:** Node.js with TypeScript
+            - **Package Manager:** pnpm (workspace monorepo)
+            - **Testing:** Vitest (unit, e2e, integration, gateway, live tests)
+            - **Messaging:** Baileys (WhatsApp Web API)
+            - **Architecture:** RPC-based agent system
+
+            ## Development Guidelines
+
+            ### Code Standards
+            - TypeScript-first development
+            - Comprehensive test coverage across multiple test types
+            - Monorepo structure with pnpm workspaces
+            - MIT licensed open-source project
+
+            ### Test Types
+            1. **Unit Tests** - Individual component testing
+            2. **E2E Tests** - End-to-end workflow testing
+            3. **Integration Tests** - Cross-component integration
+            4. **Gateway Tests** - WhatsApp gateway specific tests
+            5. **Live Tests** - Real-world scenario testing
+            6. **Extensions Tests** - Plugin/extension testing
+
+            ### Scripts Available
+            - `android:assemble` - Build Android app (debug)
+            - `android:install` - Install Android app
+            - `android:run` - Run Android app
+            - `android:test` - Run Android tests
+            - `build` - Build the project
+            - `canvas:a2ui:bundle` - Bundle canvas UI components
+            - `check:loc` - Check TypeScript file line count
+            - `dev` - Run development server
+            - `postinstall` - Post-installation script
+            - `install` - Install dependencies
+
+            ## AI Assistant Context
+
+            When working on this project:
+
+            1. **Codebase Navigation:**
+               - Start with `package.json` for dependencies and scripts
+                  - Check `openclaw.mjs` for main entry logic
+                     - Review sub-packages for modular functionality
+                        - Consult `INTEGRATION_MAP.md` for integration patterns
+
+                        2. **Testing:**
+                           - Run appropriate test suite based on changes
+                              - Maintain test coverage for new features
+                                 - Use vitest configuration files for test customization
+
+                                 3. **Architecture:**
+                                    - Respect the monorepo structure
+                                       - Follow RPC agent patterns
+                                          - Maintain WhatsApp gateway abstractions
+
+                                          4. **Development Workflow:**
+                                             - Use pnpm for all package management
+                                                - Follow TypeScript best practices
+                                                   - Keep tests passing before committing
+                                                      - Check line-of-code limits with `check:loc`
+
+                                                      ## Key Considerations
+
+                                                      - **WhatsApp Integration:** The project heavily integrates with WhatsApp via Baileys
+                                                      - **Bot Functionality:** Includes multiple bot implementations (clawdbot, moltbot)
+                                                      - **Agent System:** Built on RPC agent architecture for distributed functionality
+                                                      - **Testing Focus:** Comprehensive testing strategy with multiple test environments
+                                                      - **Mobile Support:** Android application support with gradle-based build system
+
+                                                      ## Common Tasks
+
+                                                      ### Adding New Features
+                                                      1. Determine if it belongs in core or a sub-package
+                                                      2. Write tests first (TDD approach)
+                                                      3. Implement feature following TypeScript patterns
+                                                      4. Update relevant documentation
+                                                      5. Run full test suite
+
+                                                      ### Debugging
+                                                      - Check appropriate vitest configuration
+                                                      - Review RPC agent communication logs
+                                                      - Verify WhatsApp gateway connectivity
+                                                      - Test in isolation before integration
+
+                                                      ### Deployment
+                                                      - Run `build` script
+                                                      - Verify all tests pass
+                                                      - For Android: use `android:assemble` and `android:install`
+                                                      - For production: ensure dependencies are locked
+
+                                                      ## Project Maturity
+                                                      Based on version 2026.1.30 and the presence of QUANTUM_COMPLETE.md, this appears to be a mature, feature-complete project with ongoing maintenance and optimization focus.
