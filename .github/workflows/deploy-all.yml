@@ -1,0 +1,123 @@
+name: Deploy OpenClaw to All Surfaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      surfaces:
+        description: "Surfaces: all | railway | fly | vercel | northflank | render"
+        default: "all"
+        required: true
+
+env:
+  OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+  # Free models (no API cost)
+  OPENCLAW_FREE_MODELS: >-
+    google/gemma-4-31b-it:free,
+    meta-llama/llama-3.3-70b-instruct:free,
+    nvidia/nemotron-3-super-120b-a12b:free,
+    qwen/qwen3-coder:free,
+    moonshotai/kimi-k2.6:free,
+    openai/gpt-oss-120b:free,
+    openai/gpt-oss-20b:free,
+    nousresearch/hermes-3-llama-3.1-405b:free,
+    nvidia/nemotron-3-nano-30b-a3b:free,
+    nvidia/nemotron-nano-12b-v2-vl:free,
+    google/gemma-4-26b-a4b-it:free,
+    meta-llama/llama-3.2-3b-instruct:free,
+    liquid/lfm-2.5-1.2b-instruct:free,
+    qwen/qwen3-next-80b-a3b-instruct:free,
+    poolside/laguna-m.1:free,
+    poolside/laguna-xs.2:free,
+    z-ai/glm-4.5-air:free,
+    cognitivecomputations/dolphin-mistral-24b-venice-edition:free,
+    nvidia/nemotron-nano-9b-v2:free,
+    nvidia/nemotron-3-super-120b-a12b:free,
+    liquid/lfm-2.5-1.2b-thinking:free,
+    openrouter/free
+
+jobs:
+  # ── Fly.io ────────────────────────────────────────────────────────────────
+  deploy-fly:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.FLY_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy to Fly.io
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl apps create evez-openclaw --org evez 2>/dev/null || true
+          flyctl volumes create openclaw_data --app evez-openclaw --region lax --size 5 2>/dev/null || true
+          flyctl secrets set \
+            NODE_ENV=production \
+            OPENCLAW_STATE_DIR=/data \
+            OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}" \
+            CLOUDFLARE_API_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            SUPABASE_SERVICE_KEY="${{ secrets.SUPABASE_SERVICE_KEY }}" \
+            --app evez-openclaw 2>/dev/null || true
+          flyctl deploy --config fly.toml --app evez-openclaw --remote-only --wait-timeout 120
+
+  # ── Railway (via Docker + GitHub) ─────────────────────────────────────────
+  deploy-railway:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.RAILWAY_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway link --project b3015c2a-c6e1-4684-a626-f28c70332136
+          railway variables set \
+            OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}" \
+            CLOUDFLARE_API_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}" \
+            NODE_ENV=production \
+            OPENCLAW_STATE_DIR=/data
+          railway up --detach
+
+  # ── Vercel ─────────────────────────────────────────────────────────────────
+  deploy-vercel:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Vercel
+        run: |
+          npm install -g vercel
+          vercel --token ${{ secrets.VERCEL_TOKEN }} \
+            --env OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }} \
+            --prod --yes
+
+  # ── Render ─────────────────────────────────────────────────────────────────
+  deploy-render:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.RENDER_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger Render deploy
+        run: |
+          curl -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json"
+
+  # ── Northflank ─────────────────────────────────────────────────────────────
+  deploy-northflank:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.NORTHFLANK_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Northflank
+        run: |
+          npm install -g @northflank/cli
+          northflank login --api-key ${{ secrets.NORTHFLANK_API_KEY }}
+          northflank create deployment \
+            --name evez-openclaw \
+            --image ghcr.io/evezart/openclaw-fork:latest \
+            --env OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }} \
+            2>/dev/null || northflank restart deployment --name evez-openclaw
