@@ -1,0 +1,46 @@
+name: OpenClaw Fly Start + Configure
+
+on:
+  workflow_dispatch:
+
+jobs:
+  start-instances:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Set API keys on Instance 1 (openclaws-qol4-a)
+        run: |
+          flyctl secrets set \
+            GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+            OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}" \
+            CEREBRAS_API_KEY="${{ secrets.CEREBRAS_API_KEY }}" \
+            --app openclaws-qol4-a
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Set API keys on Instance 2 (openclaw-pfncdg)
+        run: |
+          flyctl secrets set \
+            GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+            OPENROUTER_API_KEY="${{ secrets.OPENROUTER_API_KEY }}" \
+            CEREBRAS_API_KEY="${{ secrets.CEREBRAS_API_KEY }}" \
+            --app openclaw-pfncdg
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Start machines and verify
+        run: |
+          flyctl machine start --app openclaws-qol4-a || true
+          flyctl machine start --app openclaw-pfncdg || true
+          sleep 15
+          echo "=== Instance 1 ===" && flyctl status --app openclaws-qol4-a || true
+          echo "=== Instance 2 ===" && flyctl status --app openclaw-pfncdg || true
+          echo ""
+          echo "Instance 1: https://openclaws-qol4-a.fly.dev"
+          echo "Instance 2: https://openclaw-pfncdg.fly.dev"
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
