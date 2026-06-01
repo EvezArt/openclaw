@@ -1,0 +1,90 @@
+name: Build Android APK (EvezArt OpenClaw)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "Build type: debug or release"
+        default: "debug"
+        required: true
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('apps/android/**/*.gradle*', 'apps/android/**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      - name: Make gradlew executable
+        run: chmod +x apps/android/gradlew
+
+      - name: Build Debug APK
+        if: ${{ github.event.inputs.build_type != 'release' || github.event_name == 'push' }}
+        working-directory: apps/android
+        run: ./gradlew assembleDebug --no-daemon -Dorg.gradle.jvmargs="-Xmx4g"
+
+      - name: Build Release APK
+        if: ${{ github.event.inputs.build_type == 'release' }}
+        working-directory: apps/android
+        env:
+          SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon -Dorg.gradle.jvmargs="-Xmx4g"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openclaw-android-apk
+          path: apps/android/app/build/outputs/apk/**/*.apk
+          retention-days: 30
+
+      - name: Create GitHub Release (on push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-${{ github.run_number }}
+          name: "OpenClaw Android APK #${{ github.run_number }}"
+          body: |
+            ## OpenClaw Android – Auto Build
+            Built from commit ${{ github.sha }}
+
+            ### Free OpenRouter Models Configured
+            - google/gemma-4-31b-it:free (262k ctx)
+            - meta-llama/llama-3.3-70b-instruct:free (131k ctx)
+            - nvidia/nemotron-3-super-120b-a12b:free (1M ctx)
+            - qwen/qwen3-coder:free (1M ctx)
+            - moonshotai/kimi-k2.6:free (262k ctx)
+            - openai/gpt-oss-120b:free (131k ctx)
+            - nousresearch/hermes-3-llama-3.1-405b:free (131k ctx)
+            - + 18 more free models via OpenRouter
+
+            ### Deploy surfaces: Railway | Fly.io | Vercel | Northflank | Render
+          files: apps/android/app/build/outputs/apk/**/*.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
