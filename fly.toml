@@ -1,9 +1,9 @@
-# fly.toml app configuration file generated for openclaw-pfncdg on 2026-05-13T21:18:32Z
+# fly.toml app configuration file generated for openclaw-fork on 2026-06-01T11:00:33Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'openclaw-pfncdg'
+app = 'openclaw-fork'
 primary_region = 'ams'
 
 [build]
