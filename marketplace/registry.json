@@ -1,5 +1,21 @@
 {
   "version": "1.0.0",
-  "updated_at": "2026-03-15T00:00:00+00:00",
-  "skills": {}
+  "updated_at": "2026-06-01T04:34:07.095400+00:00",
+  "skills": {
+    "evez-os": {
+      "name": "evez-os",
+      "version": "1.0.0",
+      "description": "EVEZ-OS forensic cognition engine",
+      "author": "EvezArt",
+      "github": "EvezArt/evez-os",
+      "license": "AGPL-3.0",
+      "commercial": "https://rubikspubes.gumroad.com",
+      "tags": [
+        "ai",
+        "forensics",
+        "visualization",
+        "offline"
+      ]
+    }
+  }
 }
