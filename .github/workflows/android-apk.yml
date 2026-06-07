@@ -24,11 +24,9 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate Gradle Wrapper
+      - name: Make gradlew executable
         working-directory: apps/android
-        run: |
-          gradle wrapper --gradle-version=8.7 --distribution-type=bin
-          chmod +x gradlew
+        run: chmod +x gradlew
 
       - name: Cache Gradle
         uses: actions/cache@v4
@@ -47,37 +45,39 @@ jobs:
         id: find_apk
         run: |
           APK=$(find apps/android -name "*.apk" | head -1)
-          echo "apk_path=$APK" >> $GITHUB_OUTPUT
+          echo "apk_path=$APK" >> "$GITHUB_OUTPUT"
           echo "Found APK: $APK"
 
       - name: Rename APK
         run: |
-          cp "${{ steps.find_apk.outputs.apk_path }}" evezart-openclaw-debug.apk
+          cp "${{ steps.find_apk.outputs.apk_path }}" evezart-openclaw-a16.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: evezart-openclaw-apk
-          path: evezart-openclaw-debug.apk
-          retention-days: 30
+          path: evezart-openclaw-a16.apk
+          retention-days: 90
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
-          name: "EvezArt OpenClaw APK (Build ${{ github.run_number }})"
+          name: "EVEZ OpenClaw A16 — Build ${{ github.run_number }}"
           body: |
-            ## EvezArt OpenClaw Android APK
-            
-            Install this on your Samsung Galaxy A16.
-            
-            **What this is:** Native Android WebView wrapper for your Railway OpenClaw deployment.
-            
-            **Connects to:**
-            - Primary: https://openclaw-production-49a1.up.railway.app/
-            - Fallback: https://openclaw-main-production-dab9.up.railway.app/
-            
-            **Install:** Download the APK → enable "Install from unknown sources" in Android settings → tap APK file.
-          files: evezart-openclaw-debug.apk
+            ## EVEZ OpenClaw — Samsung Galaxy A16 APK
+
+            Built from EvezArt/openclaw-fork. EVEZ-OS mesh node pre-configured.
+
+            **Primary endpoint:** https://evez420-evezart-openclaw.hf.space/ (free, always-on)
+            **Fallback:** Railway (if payment restored)
+            **Offline page:** https://evezart.github.io/
+
+            **Install:**
+            1. Download `evezart-openclaw-a16.apk`
+            2. Settings → Apps → Special app access → Install unknown apps → enable for your browser/file manager
+            3. Tap the APK file and install
+          files: evezart-openclaw-a16.apk
           draft: false
           prerelease: false
+
