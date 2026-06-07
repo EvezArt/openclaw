@@ -21,11 +21,14 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
     private lateinit var swipeRefresh: SwipeRefreshLayout
+    private var failoverAttempted = false
 
     companion object {
-        // Primary Railway deployment, fallback to second
-        private const val PRIMARY_URL = "https://openclaw-production-49a1.up.railway.app/"
-        private const val FALLBACK_URL = "https://openclaw-main-production-dab9.up.railway.app/"
+        // EVEZ-OS Endpoints — free, always-on
+        private const val PRIMARY_URL   = "https://evez420-evezart-openclaw.hf.space/"
+        private const val FALLBACK_URL  = "https://openclaw-production-49a1.up.railway.app/"
+        private const val OFFLINE_URL   = "https://evezart.github.io/"
+        private const val EVEZ_INJECT = "window.EVEZ_OS={node:'alpha',device:'Samsung Galaxy A16',version:'2026.06',mesh:true,phi:0.9725};console.log('[EVEZ-OS] Mesh node online');"
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -50,63 +53,47 @@ class MainActivity : AppCompatActivity() {
         settings.mediaPlaybackRequiresUserGesture = false
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         settings.cacheMode = WebSettings.LOAD_DEFAULT
-        settings.userAgentString = "EvezArt-OpenClaw/2026 Android/A16 " + settings.userAgentString
+        settings.userAgentString = "EvezArt-OpenClaw/2026.06 EVEZ-OS/alpha Android/A16 " + settings.userAgentString
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
                 return if (url.startsWith("http://") || url.startsWith("https://")) {
-                    false  // Let WebView handle all http(s) URLs
+                    false
                 } else {
-                    // Open other schemes externally
-                    try {
-                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    } catch (e: Exception) {
-                        Toast.makeText(this@MainActivity, "Cannot open link", Toast.LENGTH_SHORT).show()
-                    }
+                    try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                    catch (e: Exception) { Toast.makeText(this@MainActivity, "Cannot open link", Toast.LENGTH_SHORT).show() }
                     true
                 }
             }
 
             override fun onPageFinished(view: WebView, url: String) {
                 swipeRefresh.isRefreshing = false
+                view.evaluateJavascript(EVEZ_INJECT, null)
             }
 
             override fun onReceivedError(view: WebView, errorCode: Int, description: String, failingUrl: String) {
-                if (failingUrl == PRIMARY_URL || failingUrl.startsWith(PRIMARY_URL)) {
-                    // Try fallback
-                    view.loadUrl(FALLBACK_URL)
-                }
+                if (!failoverAttempted) { failoverAttempted = true; view.loadUrl(FALLBACK_URL) }
+                else { view.loadUrl(OFFLINE_URL) }
             }
         }
 
         webView.webChromeClient = object : WebChromeClient() {
-            override fun onPermissionRequest(request: PermissionRequest) {
-                request.grant(request.resources)
-            }
-
+            override fun onPermissionRequest(request: PermissionRequest) { request.grant(request.resources) }
             override fun onJsAlert(view: WebView, url: String, message: String, result: JsResult): Boolean {
-                AlertDialog.Builder(this@MainActivity)
-                    .setMessage(message)
-                    .setPositiveButton("OK") { _, _ -> result.confirm() }
-                    .create().show()
+                AlertDialog.Builder(this@MainActivity).setMessage(message)
+                    .setPositiveButton("OK") { _, _ -> result.confirm() }.create().show()
                 return true
             }
         }
 
-        swipeRefresh.setOnRefreshListener { webView.reload() }
-        swipeRefresh.setColorSchemeColors(
-            resources.getColor(android.R.color.holo_green_light, theme)
-        )
-
+        swipeRefresh.setOnRefreshListener { failoverAttempted = false; webView.reload() }
+        swipeRefresh.setColorSchemeColors(resources.getColor(android.R.color.holo_green_light, theme))
         webView.loadUrl(PRIMARY_URL)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
-            webView.goBack()
-            return true
-        }
+        if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) { webView.goBack(); return true }
         return super.onKeyDown(keyCode, event)
     }
 }
