@@ -3,18 +3,29 @@ services:
     name: openclaw
     runtime: docker
     plan: starter
-    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
     envVars:
       - key: PORT
         value: "8080"
-      - key: SETUP_PASSWORD
-        sync: false
+      - key: NODE_ENV
+        value: production
       - key: OPENCLAW_STATE_DIR
         value: /data/.openclaw
       - key: OPENCLAW_WORKSPACE_DIR
         value: /data/workspace
+      - key: OPENCLAW_NO_RESPAWN
+        value: "1"
+      - key: OPENCLAW_GATEWAY_PORT
+        value: "8080"
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: CEREBRAS_API_KEY
+        sync: false
       - key: OPENCLAW_GATEWAY_TOKEN
-        generateValue: true
+        sync: false
     disk:
       name: openclaw-data
       mountPath: /data
