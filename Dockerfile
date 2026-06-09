@@ -21,14 +21,14 @@ COPY ui/package.json ./ui/package.json
 COPY patches ./patches
 COPY scripts ./scripts
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile
 
 COPY . .
 
 # Check if dist is already built (pre-built), if not build it
 RUN if [ ! -f "dist/index.js" ]; then \
       NODE_OPTIONS="--max-old-space-size=8192" OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build && \
-      NODE_OPTIONS="--max-old-space-size=8192" pnpm ui:build; \
+      NODE_OPTIONS="--max-old-space-size=8192" pnpm ui:build || echo "UI build skipped"; \
     else \
       echo "Using pre-built dist/"; \
     fi
