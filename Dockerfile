@@ -24,16 +24,19 @@ COPY scripts ./scripts
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build
-# Force pnpm for UI build (Bun may fail on ARM/Synology architectures)
-ENV OPENCLAW_PREFER_PNPM=1
-RUN pnpm ui:build
+
+# Check if dist is already built (pre-built), if not build it
+RUN if [ ! -f "dist/index.js" ]; then \
+      NODE_OPTIONS="--max-old-space-size=8192" OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build && \
+      NODE_OPTIONS="--max-old-space-size=8192" pnpm ui:build; \
+    else \
+      echo "Using pre-built dist/"; \
+    fi
 
 ENV NODE_ENV=production
+ENV OPENCLAW_PREFER_PNPM=1
 
 # Security hardening: Run as non-root user
-# The node:22-bookworm image includes a 'node' user (uid 1000)
-# This reduces the attack surface by preventing container escape via root privileges
 USER node
 
 CMD ["node", "dist/index.js"]
