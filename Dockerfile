@@ -1,42 +1,22 @@
-FROM node:22-bookworm
-
-# Install Bun (required for build scripts)
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:${PATH}"
-
-RUN corepack enable
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-ARG OPENCLAW_DOCKER_APT_PACKAGES=""
-RUN if [ -n "$OPENCLAW_DOCKER_APT_PACKAGES" ]; then \
-      apt-get update && \
-      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $OPENCLAW_DOCKER_APT_PACKAGES && \
-      apt-get clean && \
-      rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*; \
-    fi
+# Copy only what's needed to run
+COPY package.json ./
+COPY dist/ ./dist/
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY ui/package.json ./ui/package.json
-COPY patches ./patches
-COPY scripts ./scripts
-
-RUN pnpm install --no-frozen-lockfile
-
-COPY . .
-
-# Check if dist is already built (pre-built), if not build it
-RUN if [ ! -f "dist/index.js" ]; then \
-      NODE_OPTIONS="--max-old-space-size=8192" OPENCLAW_A2UI_SKIP_MISSING=1 pnpm build && \
-      NODE_OPTIONS="--max-old-space-size=8192" pnpm ui:build || echo "UI build skipped"; \
-    else \
-      echo "Using pre-built dist/"; \
-    fi
+# Install only production runtime deps (no devDeps, no build)
+RUN npm install --production --no-optional --ignore-scripts 2>/dev/null || \
+    npm install --production --ignore-scripts
 
 ENV NODE_ENV=production
-ENV OPENCLAW_PREFER_PNPM=1
+ENV PORT=8080
+ENV OPENCLAW_GATEWAY_PORT=8080
+ENV OPENCLAW_STATE_DIR=/data/.openclaw
+ENV OPENCLAW_WORKSPACE_DIR=/data/workspace
 
-# Security hardening: Run as non-root user
-USER node
+# Create data dirs
+RUN mkdir -p /data/.openclaw /data/workspace
 
 CMD ["node", "dist/index.js"]
