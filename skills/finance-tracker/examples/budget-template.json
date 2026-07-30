@@ -1,0 +1,44 @@
+{
+  "budget": {
+    "period": "monthly",
+    "categories": [
+      {
+        "name": "Housing",
+        "budgeted": 2000,
+        "subcategories": ["Rent/Mortgage", "Utilities", "Maintenance"]
+      },
+      {
+        "name": "Transportation",
+        "budgeted": 500,
+        "subcategories": ["Gas", "Public Transit", "Car Payment", "Insurance"]
+      },
+      {
+        "name": "Food",
+        "budgeted": 600,
+        "subcategories": ["Groceries", "Dining Out", "Coffee Shops"]
+      },
+      {
+        "name": "Healthcare",
+        "budgeted": 300,
+        "subcategories": ["Insurance", "Medications", "Doctor Visits"]
+      },
+      {
+        "name": "Entertainment",
+        "budgeted": 200,
+        "subcategories": ["Streaming Services", "Movies", "Hobbies"]
+      },
+      {
+        "name": "Savings",
+        "budgeted": 1000,
+        "subcategories": ["Emergency Fund", "Retirement", "Investments"]
+      },
+      {
+        "name": "Miscellaneous",
+        "budgeted": 300,
+        "subcategories": ["Shopping", "Gifts", "Personal Care"]
+      }
+    ],
+    "total_budgeted": 4900,
+    "notes": "Adjust categories and amounts to match your personal financial situation"
+  }
+}
