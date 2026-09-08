@@ -1,14 +1,15 @@
-"""Dependency-aware swarm mesh for the next EVEZ/OpenClaw runtime.
+"""Self-healing dependency-aware swarm mesh for NextClaw.
 
-The mesh is deliberately deterministic and provider-neutral. It schedules
-ready tasks from a DAG, supports bounded retries, and records enough state for
-an external UI or worker runtime to observe the swarm without owning it.
+The mesh treats worker failure as a local condition, not a mission-wide
+failure. Nodes retry, degrade, and allow downstream work to continue with an
+explicit degraded dependency. A caller never needs to remember to validate the
+DAG before scheduling: every scheduling observation validates it first.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Iterable
+from typing import Iterable, Callable, Any
 
 
 class NodeState(str, Enum):
@@ -16,6 +17,7 @@ class NodeState(str, Enum):
     READY = "ready"
     RUNNING = "running"
     DONE = "done"
+    DEGRADED = "degraded"
     FAILED = "failed"
     BLOCKED = "blocked"
 
@@ -31,8 +33,11 @@ class Node:
     result: dict | None = None
 
 
+TERMINAL = {NodeState.DONE, NodeState.DEGRADED, NodeState.FAILED, NodeState.BLOCKED}
+
+
 class SwarmMesh:
-    """Small DAG scheduler suitable for a phone-hosted control plane."""
+    """Deterministic DAG scheduler with failure containment and self-repair."""
 
     def __init__(self, nodes: Iterable[Node] = ()) -> None:
         self.nodes: dict[str, Node] = {}
@@ -43,6 +48,7 @@ class SwarmMesh:
         if node.node_id in self.nodes:
             raise ValueError(f"duplicate node: {node.node_id}")
         self.nodes[node.node_id] = node
+        self.validate()
 
     def validate(self) -> None:
         for node in self.nodes.values():
@@ -67,14 +73,26 @@ class SwarmMesh:
             visit(node_id)
 
     def refresh(self) -> None:
-        for node in self.nodes.values():
-            if node.state in {NodeState.DONE, NodeState.RUNNING, NodeState.FAILED, NodeState.BLOCKED}:
-                continue
-            deps = [self.nodes[d] for d in node.depends_on]
-            if any(d.state in {NodeState.FAILED, NodeState.BLOCKED} for d in deps):
-                node.state = NodeState.BLOCKED
-            elif all(d.state == NodeState.DONE for d in deps):
-                node.state = NodeState.READY
+        """Repair all reachable dependency states in one pass until stable."""
+        self.validate()
+        changed = True
+        while changed:
+            changed = False
+            for node in self.nodes.values():
+                if node.state in {NodeState.DONE, NodeState.RUNNING, NodeState.FAILED, NodeState.DEGRADED}:
+                    continue
+                deps = [self.nodes[d] for d in node.depends_on]
+                if any(d.state == NodeState.FAILED for d in deps):
+                    # A hard failure is contained here. Downstream work is not
+                    # executed against a false "success" dependency.
+                    node.state = NodeState.BLOCKED
+                    changed = True
+                elif any(d.state == NodeState.BLOCKED for d in deps):
+                    node.state = NodeState.BLOCKED
+                    changed = True
+                elif all(d.state in {NodeState.DONE, NodeState.DEGRADED} for d in deps):
+                    node.state = NodeState.READY
+                    changed = True
 
     def ready(self) -> list[Node]:
         self.refresh()
@@ -82,6 +100,8 @@ class SwarmMesh:
 
     def start(self, node_id: str) -> Node:
         self.refresh()
+        if node_id not in self.nodes:
+            raise KeyError(node_id)
         node = self.nodes[node_id]
         if node.state != NodeState.READY:
             raise ValueError(f"node {node_id} is not ready: {node.state.value}")
@@ -89,7 +109,15 @@ class SwarmMesh:
         node.attempts += 1
         return node
 
-    def finish(self, node_id: str, result: dict, success: bool = True, max_attempts: int = 3) -> Node:
+    def finish(
+        self,
+        node_id: str,
+        result: dict,
+        success: bool = True,
+        max_attempts: int = 3,
+    ) -> Node:
+        if max_attempts <= 0:
+            raise ValueError("max_attempts must be positive")
         node = self.nodes[node_id]
         if node.state != NodeState.RUNNING:
             raise ValueError(f"node {node_id} is not running")
@@ -97,11 +125,57 @@ class SwarmMesh:
         if success:
             node.state = NodeState.DONE
         elif node.attempts < max_attempts:
+            # Retry is local. No sibling or dependent task is poisoned.
             node.state = NodeState.READY
         else:
-            node.state = NodeState.FAILED
+            # Exhausted workers become explicitly degraded. The mission can
+            # continue, but the missing evidence remains visible to WITNESS.
+            node.state = NodeState.DEGRADED
+            node.result = {**result, "degraded": True, "attempts": node.attempts}
         self.refresh()
         return node
+
+    def recover_agent(
+        self,
+        failed_agent: str,
+        replacement: Callable[[Node], str] | None = None,
+    ) -> list[str]:
+        """Reassign runnable work from one dead agent without resetting progress."""
+        changed: list[str] = []
+        for node in self.nodes.values():
+            if node.agent != failed_agent or node.state != NodeState.RUNNING:
+                continue
+            node.state = NodeState.READY
+            if replacement is not None:
+                node.agent = replacement(node)
+            changed.append(node.node_id)
+        self.refresh()
+        return changed
+
+    def steer(
+        self,
+        choose_agent: Callable[[Node], str],
+    ) -> list[Node]:
+        """Assign every currently-ready node without coupling siblings."""
+        ready = self.ready()
+        for node in ready:
+            node.agent = choose_agent(node)
+        return [self.start(node.node_id) for node in ready]
+
+    def convergence(self) -> dict[str, Any]:
+        """Return whether the swarm made progress or became genuinely stuck."""
+        self.refresh()
+        blocked = [n.node_id for n in self.nodes.values() if n.state == NodeState.BLOCKED]
+        degraded = [n.node_id for n in self.nodes.values() if n.state == NodeState.DEGRADED]
+        active = [n.node_id for n in self.nodes.values() if n.state in {NodeState.READY, NodeState.RUNNING}]
+        return {
+            "progress": bool(active or degraded or any(n.state == NodeState.DONE for n in self.nodes.values())),
+            "stuck": bool(self.nodes) and not active and not all(n.state in TERMINAL for n in self.nodes.values()),
+            "blocked": blocked,
+            "degraded": degraded,
+            "active": active,
+            "healthy_terminal": all(n.state == NodeState.DONE for n in self.nodes.values()),
+        }
 
     def snapshot(self) -> dict:
         self.refresh()
@@ -110,6 +184,7 @@ class SwarmMesh:
                 {
                     "id": n.node_id,
                     "agent": n.agent,
+                    "objective": n.objective,
                     "state": n.state.value,
                     "attempts": n.attempts,
                     "depends_on": sorted(n.depends_on),
@@ -118,5 +193,6 @@ class SwarmMesh:
                 for n in sorted(self.nodes.values(), key=lambda x: x.node_id)
             ],
             "ready": [n.node_id for n in self.ready()],
-            "terminal": all(n.state in {NodeState.DONE, NodeState.FAILED, NodeState.BLOCKED} for n in self.nodes.values()),
+            "terminal": bool(self.nodes) and all(n.state in TERMINAL for n in self.nodes.values()),
+            "convergence": self.convergence(),
         }
