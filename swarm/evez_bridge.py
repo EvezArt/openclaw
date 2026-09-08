@@ -37,6 +37,8 @@ def digest(payload: Any) -> str:
 
 
 class EvezBridge:
+    """Bridge declared cognition work into the authoritative control plane."""
+
     def __init__(self, db_path: str, projection_dir: str | None = None) -> None:
         self.control = ControlPlane(db_path)
         self.projection_dir = Path(projection_dir) if projection_dir else None
@@ -53,30 +55,34 @@ class EvezBridge:
         priority: int = 0,
     ) -> dict[str, Any]:
         rows = [dict(item) for item in evidence]
-        task_id = self.control.create_task(
+        self.control.register_agent(agent, role="bridge", capabilities=["evez_projection"])
+        self.control.heartbeat(agent, status="online")
+
+        task = self.control.create_task(
             title=title,
             objective=objective,
             origin="evez-bridge",
             priority=priority,
             required_skills=[],
         )
-        claimed = self.control.claim(task_id=task_id, agent=agent)
-        if claimed != task_id:
-            raise RuntimeError(f"agent {agent!r} could not claim task {task_id}")
-        self.control.transition(task_id, "running")
+        claimed = self.control.claim_next(agent, lease_seconds=300)
+        if claimed is None or claimed.task_id != task.task_id:
+            raise RuntimeError(f"agent {agent!r} could not claim task {task.task_id}")
+        self.control.transition(task.task_id, "running", actor=agent)
 
         for item in rows:
             item.setdefault("source", "evez-bridge")
-            item["sha256"] = digest(item)
-            self.control.attach_evidence(task_id, item)
+            unsigned = dict(item)
+            item["sha256"] = digest(unsigned)
+            self.control.add_evidence(task.task_id, agent, item)
 
-        self.control.transition(task_id, "verifying")
+        self.control.transition(task.task_id, "verifying", actor=agent)
         projection = Projection(
-            task_id=task_id,
+            task_id=task.task_id,
             event_type="cognition_projection",
             source="evez-bridge",
             payload_sha256=digest({
-                "task_id": task_id,
+                "task_id": task.task_id,
                 "agent": agent,
                 "title": title,
                 "objective": objective,
@@ -84,15 +90,30 @@ class EvezBridge:
             }),
             created_at=time.time(),
         )
-        self.control.emit_event(task_id, projection.event_type, projection.to_dict())
+        self.control.emit(projection.event_type, agent, projection.to_dict())
 
         if self.projection_dir:
-            output = self.projection_dir / f"{task_id}.json"
+            output = self.projection_dir / f"{task.task_id}.json"
             output.write_text(canonical_json(projection.to_dict()) + "\n", encoding="utf-8")
 
         return {
-            "task_id": task_id,
+            "task_id": task.task_id,
             "state": "verifying",
             "evidence_count": len(rows),
             "projection": projection.to_dict(),
+        }
+
+    def verify_projection(self, task_id: str, witness: str = "WITNESS") -> dict[str, Any]:
+        """Close the loop only through the control-plane verification gate."""
+        task = self.control.get_task(task_id)
+        if task.state != "verifying":
+            raise ValueError(f"task {task_id} is {task.state}, not verifying")
+        self.control.register_agent(witness, role="audit", capabilities=["verification"])
+        self.control.heartbeat(witness, status="online")
+        verified = self.control.verify(task_id, witness, "verified", note="projection witnessed")
+        return {
+            "task_id": task_id,
+            "state": verified.state,
+            "verification": verified.verification,
+            "evidence_count": len(verified.evidence),
         }
