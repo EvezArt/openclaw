@@ -1,4 +1,3 @@
-"""Bridge EVEZ-OS-style cognition into the NextClaw control plane."""
 from __future__ import annotations
 
 import hashlib
@@ -32,7 +31,7 @@ def digest(payload: Any) -> str:
 
 
 class EvezBridge:
-    """Record an interaction as auditable control-plane state."""
+    """Translate declared agent work into durable control-plane state."""
 
     def __init__(self, db_path: str, projection_dir: str | None = None) -> None:
         self.control = ControlPlane(db_path)
@@ -49,6 +48,7 @@ class EvezBridge:
         evidence: Iterable[dict[str, Any]] = (),
         priority: int = 0,
     ) -> dict[str, Any]:
+        evidence_rows = [dict(row) for row in evidence]
         task_id = self.control.create_task(
             title=title,
             objective=objective,
@@ -61,7 +61,6 @@ class EvezBridge:
             raise RuntimeError(f"agent {agent!r} could not claim task {task_id}")
         self.control.transition(task_id, "running")
 
-        evidence_rows = list(evidence)
         for row in evidence_rows:
             payload = dict(row)
             payload.setdefault("source", "evez-bridge")
