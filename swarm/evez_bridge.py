@@ -13,8 +13,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
-from .control_plane import ControlPlane
-from .truth_gate import claim, execute, observe
+try:
+    from .control_plane import ControlPlane
+    from .truth_gate import claim, execute, observe
+except ImportError:
+    from control_plane import ControlPlane
+    from truth_gate import claim, execute, observe
 
 
 @dataclass(frozen=True)
@@ -61,7 +65,8 @@ class EvezBridge:
         self.control.register_agent(agent, role="bridge", capabilities=["evez_projection"])
         self.control.heartbeat(agent, status="online")
 
-        epistemic_claim = claim(f"{agent}:{digest({\"title\": title, \"objective\": objective})}", objective)
+        claim_id = f"{agent}:{digest({'title': title, 'objective': objective})}"
+        epistemic_claim = claim(claim_id, objective)
         task = self.control.create_task(
             title=title,
             objective=objective,
