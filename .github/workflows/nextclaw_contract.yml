@@ -1,0 +1,34 @@
+name: NextClaw Contract
+
+on:
+  push:
+    branches:
+      - 'evez-nextclaw/**'
+    paths:
+      - 'swarm/**'
+      - '.github/workflows/nextclaw_contract.yml'
+  pull_request:
+    paths:
+      - 'swarm/**'
+      - '.github/workflows/nextclaw_contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile swarm modules
+        run: python -m py_compile swarm/*.py
+      - name: Run federation contract checks
+        working-directory: swarm
+        run: python contract_test.py
+      - name: Run NextClaw offline convergence demo
+        working-directory: swarm
+        run: python nextclaw_demo.py
