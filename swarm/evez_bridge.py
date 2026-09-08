@@ -1,9 +1,4 @@
-"""Bridge EVEZ-OS-style cognition into the NextClaw control plane.
-
-This module deliberately does not claim to run consciousness. It turns an
-interaction into durable, auditable task/evidence state and optionally emits
-VCL-compatible projection records.
-"""
+"""Bridge EVEZ-OS-style cognition into the NextClaw control plane."""
 from __future__ import annotations
 
 import hashlib
@@ -37,7 +32,7 @@ def digest(payload: Any) -> str:
 
 
 class EvezBridge:
-    """Record an OpenClaw/NextClaw interaction as auditable control-plane state."""
+    """Record an interaction as auditable control-plane state."""
 
     def __init__(self, db_path: str, projection_dir: str | None = None) -> None:
         self.control = ControlPlane(db_path)
