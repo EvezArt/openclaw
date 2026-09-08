@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from control_plane import ControlPlane
+from ecosystem import load_manifest, summary
 
 ROOT = Path(__file__).resolve().parent
 AGENTS = ROOT / "agents.json"
@@ -23,6 +24,15 @@ def main() -> int:
     if not required:
         errors.append("no required agents configured")
 
+    try:
+        ecosystem = load_manifest()
+        ecosystem_status = summary(ecosystem)
+        if ecosystem_status["repositories"] < 8:
+            errors.append("ecosystem registry unexpectedly small")
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        ecosystem_status = {"error": str(exc)}
+        errors.append(f"ecosystem manifest invalid: {exc}")
+
     cp = ControlPlane("state/swarm-smoke.db")
     for agent in manifest["agents"]:
         cp.register_agent(agent["id"], agent["role"])
@@ -30,7 +40,7 @@ def main() -> int:
 
     task = cp.create_task(
         "swarm smoke test",
-        "verify task lifecycle, lease handling, and verification gate",
+        "verify task lifecycle, lease handling, verification gate, and ecosystem registry",
         priority=10,
         required_skills=["swarm-control-plane"],
     )
@@ -49,7 +59,12 @@ def main() -> int:
     if status["live_agents"] != len(ids):
         errors.append("heartbeat accounting mismatch")
 
-    print(json.dumps({"ok": not errors, "errors": errors, "status": status}, indent=2))
+    print(json.dumps({
+        "ok": not errors,
+        "errors": errors,
+        "status": status,
+        "ecosystem": ecosystem_status,
+    }, indent=2, sort_keys=True))
     return 1 if errors else 0
 
 
