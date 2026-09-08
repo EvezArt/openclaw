@@ -1,0 +1,30 @@
+name: NextClaw Offline Swarm
+
+on:
+  push:
+    branches: ['evez-nextclaw/**']
+    paths:
+      - 'swarm/**'
+      - '.github/workflows/nextclaw.yml'
+  pull_request:
+    paths:
+      - 'swarm/**'
+      - '.github/workflows/nextclaw.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-swarm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate syntax
+        run: python -m py_compile swarm/mesh.py swarm/consensus.py swarm/nextclaw_demo.py
+      - name: Run offline convergence demo
+        working-directory: swarm
+        run: python nextclaw_demo.py
