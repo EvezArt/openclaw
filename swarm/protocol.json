@@ -1,0 +1,27 @@
+{
+  "protocol": "nextclaw/1",
+  "principles": ["content-addressed", "replay-tolerant", "provider-neutral", "phone-first", "verification-gated"],
+  "message_kinds": {
+    "hello": "peer identity, capabilities, liveness",
+    "mission": "root user intent and mission metadata",
+    "task": "leased unit of work",
+    "evidence": "structured observation or artifact reference",
+    "verdict": "worker or verifier assessment",
+    "heartbeat": "peer liveness update",
+    "ack": "transport-level acknowledgement",
+    "event": "append-only lifecycle event"
+  },
+  "required_envelope_fields": ["protocol", "kind", "node_id", "message_id", "created_at", "payload", "digest"],
+  "task_rules": {
+    "single_authority": "control_plane",
+    "leases_required": true,
+    "expired_leases_requeue": true,
+    "privileged_actions_require_verification": true,
+    "unknown_repositories": "observe_only"
+  },
+  "memory_rules": {
+    "verified_results_only": true,
+    "rejected_claims_persist": false,
+    "contradictions_must_be_preserved_until_resolved": true
+  }
+}
