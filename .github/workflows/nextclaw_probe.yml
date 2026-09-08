@@ -20,26 +20,40 @@ jobs:
       - name: Execute swarm proof
         shell: bash
         run: |
-          set +e
+          set -u
+          status=0
           {
             echo '== PYTHON =='
             python --version
+
             echo '== COMPILE =='
-            python -m py_compile swarm/*.py
-            echo "compile_exit=$?"
+            python -m py_compile swarm/*.py || status=1
+            echo "compile_status=$status"
+
             echo '== CONTRACT =='
-            (cd swarm && python contract_test.py)
-            echo "contract_exit=$?"
+            (cd swarm && python contract_test.py) || status=1
+            echo "contract_status=$status"
+
             echo '== TRUTH GATE =='
-            (cd swarm && python truth_gate_test.py)
-            echo "truth_gate_exit=$?"
+            (cd swarm && python truth_gate_test.py) || status=1
+            echo "truth_gate_status=$status"
+
             echo '== EVEZ BRIDGE =='
-            (cd swarm && python evez_bridge_test.py)
-            echo "bridge_exit=$?"
+            (cd swarm && python evez_bridge_test.py) || status=1
+            echo "bridge_status=$status"
+
+            echo '== SELF STEERING =='
+            (cd swarm && python self_steering_test.py) || status=1
+            echo "self_steering_status=$status"
+
             echo '== OFFLINE DEMO =='
-            (cd swarm && python nextclaw_demo.py)
-            echo "demo_exit=$?"
+            (cd swarm && python nextclaw_demo.py) || status=1
+            echo "demo_status=$status"
+
+            echo "probe_exit=$status"
           } > swarm_probe.txt 2>&1
+          cat swarm_probe.txt
+          exit "$status"
       - name: Upload diagnostics
         if: always()
         uses: actions/upload-artifact@v4
