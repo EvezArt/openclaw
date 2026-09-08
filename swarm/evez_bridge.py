@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .control_plane import ControlPlane
+from .truth_gate import claim, execute, observe
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,8 @@ class Projection:
     event_type: str
     source: str
     payload_sha256: str
+    truth_state: str
+    claim_sha256: str
     created_at: float
 
     def to_dict(self) -> dict[str, Any]:
@@ -58,6 +61,7 @@ class EvezBridge:
         self.control.register_agent(agent, role="bridge", capabilities=["evez_projection"])
         self.control.heartbeat(agent, status="online")
 
+        epistemic_claim = claim(f"{agent}:{digest({\"title\": title, \"objective\": objective})}", objective)
         task = self.control.create_task(
             title=title,
             objective=objective,
@@ -70,13 +74,18 @@ class EvezBridge:
             raise RuntimeError(f"agent {agent!r} could not claim task {task.task_id}")
         self.control.transition(task.task_id, "running", actor=agent)
 
+        observed = epistemic_claim
         for item in rows:
             item.setdefault("source", "evez-bridge")
             unsigned = dict(item)
             item["sha256"] = digest(unsigned)
             self.control.add_evidence(task.task_id, agent, item)
+            observed = observe(observed, item, str(item["source"]))
+        if not rows:
+            observed = observe(observed, {"task_id": task.task_id, "state": "running"}, "control-plane")
 
         self.control.transition(task.task_id, "verifying", actor=agent)
+        executed = execute(observed, {"task_id": task.task_id, "state": "verifying"}, "evez-bridge")
         projection = Projection(
             task_id=task.task_id,
             event_type="cognition_projection",
@@ -88,6 +97,8 @@ class EvezBridge:
                 "objective": objective,
                 "evidence": rows,
             }),
+            truth_state=executed.state,
+            claim_sha256=executed.claim_sha256,
             created_at=time.time(),
         )
         self.control.emit(projection.event_type, agent, projection.to_dict())
@@ -100,6 +111,7 @@ class EvezBridge:
             "task_id": task.task_id,
             "state": "verifying",
             "evidence_count": len(rows),
+            "truth_state": executed.state,
             "projection": projection.to_dict(),
         }
 
