@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from pathlib import Path
 
 from federation import capability_match, make_envelope, quorum, select_workers
@@ -31,11 +32,14 @@ def main() -> int:
     vote = quorum(["verified", "verified", "blocked"], minimum=2)
     assert vote["winner"] == "verified" and vote["quorum"] is True
 
-    gateway = Gateway(":memory:")
-    result = gateway.mission("test federation from phone")
-    assert result["mode"] == "free-first"
-    assert len(result["children"]) == 5
-    print(json.dumps({"ok": True, "protocol": protocol["protocol"], "selected_workers": [p["node_id"] for p in selected], "quorum": vote, "mission": result}, indent=2))
+    with tempfile.TemporaryDirectory(prefix="nextclaw-test-") as tmp:
+        gateway = Gateway(str(Path(tmp) / "swarm.db"))
+        result = gateway.mission("test federation from phone")
+        assert result["mode"] == "free-first"
+        assert len(result["children"]) == 5
+        output = {"ok": True, "protocol": protocol["protocol"], "selected_workers": [p["node_id"] for p in selected], "quorum": vote, "mission": result}
+
+    print(json.dumps(output, indent=2))
     return 0
 
 
