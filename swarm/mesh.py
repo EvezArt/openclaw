@@ -45,10 +45,10 @@ class SwarmMesh:
             self.add(node)
 
     def add(self, node: Node) -> None:
+        """Insert a node; full validation happens at scheduling boundaries."""
         if node.node_id in self.nodes:
             raise ValueError(f"duplicate node: {node.node_id}")
         self.nodes[node.node_id] = node
-        self.validate()
 
     def validate(self) -> None:
         for node in self.nodes.values():
@@ -83,8 +83,6 @@ class SwarmMesh:
                     continue
                 deps = [self.nodes[d] for d in node.depends_on]
                 if any(d.state == NodeState.FAILED for d in deps):
-                    # A hard failure is contained here. Downstream work is not
-                    # executed against a false "success" dependency.
                     node.state = NodeState.BLOCKED
                     changed = True
                 elif any(d.state == NodeState.BLOCKED for d in deps):
@@ -128,8 +126,8 @@ class SwarmMesh:
             # Retry is local. No sibling or dependent task is poisoned.
             node.state = NodeState.READY
         else:
-            # Exhausted workers become explicitly degraded. The mission can
-            # continue, but the missing evidence remains visible to WITNESS.
+            # Exhausted failure becomes explicitly degraded. The mission can
+            # continue, but the missing evidence remains visible downstream.
             node.state = NodeState.DEGRADED
             node.result = {**result, "degraded": True, "attempts": node.attempts}
         self.refresh()
@@ -163,18 +161,19 @@ class SwarmMesh:
         return [self.start(node.node_id) for node in ready]
 
     def convergence(self) -> dict[str, Any]:
-        """Return whether the swarm made progress or became genuinely stuck."""
+        """Return whether the swarm progressed, degraded, or genuinely stalled."""
         self.refresh()
         blocked = [n.node_id for n in self.nodes.values() if n.state == NodeState.BLOCKED]
         degraded = [n.node_id for n in self.nodes.values() if n.state == NodeState.DEGRADED]
         active = [n.node_id for n in self.nodes.values() if n.state in {NodeState.READY, NodeState.RUNNING}]
+        terminal = bool(self.nodes) and all(n.state in TERMINAL for n in self.nodes.values())
         return {
             "progress": bool(active or degraded or any(n.state == NodeState.DONE for n in self.nodes.values())),
-            "stuck": bool(self.nodes) and not active and not all(n.state in TERMINAL for n in self.nodes.values()),
+            "stuck": bool(self.nodes) and not active and not terminal,
             "blocked": blocked,
             "degraded": degraded,
             "active": active,
-            "healthy_terminal": all(n.state == NodeState.DONE for n in self.nodes.values()),
+            "healthy_terminal": bool(self.nodes) and all(n.state == NodeState.DONE for n in self.nodes.values()),
         }
 
     def snapshot(self) -> dict:
